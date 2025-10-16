@@ -21,6 +21,8 @@ import com.example.qualifygym_grupo13.ui.screen.HomeScreen // Pantalla Home
 import com.example.qualifygym_grupo13.ui.screen.LoginScreenVm // Pantalla Login
 import com.example.qualifygym_grupo13.ui.screen.RegisterScreenVm // Pantalla Registro
 
+
+
 @Composable // Gráfico de navegación + Drawer + Scaffold
 fun AppNavGraph(navController: NavHostController) { // Recibe el controlador
 
