@@ -20,7 +20,7 @@ fun validateNameLettersOnly(name: String): String? {                   // Valida
 fun validatePhoneDigitsOnly(phone: String): String? {                  // Valida teléfono
     if (phone.isBlank()) return "El teléfono es obligatorio"           // Regla 1: no vacío
     if (!phone.all { it.isDigit() }) return "Solo números"             // Regla 2: todos dígitos
-    if (phone.length !in 8..15) return "Debe tener entre 8 y 15 dígitos" // Regla 3: tamaño razonable
+    if (phone.length !in 7..8) return "Debe tener entre 7 y 8 dígitos" // Regla 3: tamaño razonable
     return null                                                        // OK
 }
 
