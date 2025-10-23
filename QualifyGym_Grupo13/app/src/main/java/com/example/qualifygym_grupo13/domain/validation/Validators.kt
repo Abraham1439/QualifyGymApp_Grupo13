@@ -24,16 +24,36 @@ fun validatePhoneDigitsOnly(phone: String): String? {                  // Valida
     return null                                                        // OK
 }
 
+
 // Valida seguridad de la contraseña (mín. 8, mayús, minús, número y símbolo; sin espacios)
-fun validateStrongPassword(pass: String): String? {                    // Requisitos mínimos de seguridad
-    if (pass.isBlank()) return "La contraseña es obligatoria"          // No vacío
-    if (pass.length < 8) return "Mínimo 8 caracteres"                  // Largo mínimo
-    if (!pass.any { it.isUpperCase() }) return "Debe incluir una mayúscula" // Al menos 1 mayúscula
-    if (!pass.any { it.isLowerCase() }) return "Debe incluir una minúscula" // Al menos 1 minúscula
-    if (!pass.any { it.isDigit() }) return "Debe incluir un número"         // Al menos 1 número
-    if (!pass.any { !it.isLetterOrDigit() }) return "Debe incluir un símbolo" // Al menos 1 símbolo
-    if (pass.contains(' ')) return "No debe contener espacios"          // Sin espacios
-    return null                                                         // OK
+fun validateStrongPassword(pass: String): List<String> { //Se cambia esto para que devulva una lista de errores para que no tire los erres uno por uno
+    val errors = mutableListOf<String>() //Lista de errores
+
+    // Requisitos mínimos de seguridad
+    if (pass.isBlank()) {
+        errors.add("La contraseña es obligatoria")
+        return errors
+    }
+    if (pass.length < 8) {
+        errors.add("Debe teber mínimo 8 caracteres") // Largo mínimo
+    }
+    if (!pass.any { it.isUpperCase() }) {
+        errors.add("Debe incluir una mayúscula") // Al menos 1 mayúscula
+    }
+    if (!pass.any { it.isLowerCase() }) {
+        errors.add("Debe incluir una minúscula") // Al menos 1 minúscula
+    }
+    if (!pass.any { it.isDigit() }) {
+        errors.add("Debe incluir un número") // Al menos 1 número
+    }
+    if (!pass.any { !it.isLetterOrDigit() }) {
+        errors.add("Debe incluir un símbolo") // Al menos 1 símbolo
+
+    }
+    if (pass.contains(' ')) {
+        errors.add("No debe contener espacios") // Sin espacios
+    }
+    return errors     //ya no devulve ok sino la lista de errores
 }
 
 // Valida que la confirmación coincida con la contraseña

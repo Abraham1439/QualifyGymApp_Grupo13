@@ -35,7 +35,7 @@ data class RegisterUiState(                                // Estado de la panta
     val nameError: String? = null,                         // Errores por campo
     val emailError: String? = null,
     val phoneError: String? = null,
-    val passError: String? = null,
+    val passError: List<String> = emptyList(),             //Esto se cambia a una lista que se creo en el validators
     val confirmError: String? = null,
 
     val isSubmitting: Boolean = false,                     // Flag de carga
@@ -144,9 +144,11 @@ class AuthViewModel(
         recomputeRegisterCanSubmit()
     }
 
+
+    //Aqui hay cambios se agrego el passError.isEmpty()
     private fun recomputeRegisterCanSubmit() {              // Habilitar "Registrar" si todo OK
         val s = _register.value                              // Tomamos el estado actual
-        val noErrors = listOf(s.nameError, s.emailError, s.phoneError, s.passError, s.confirmError).all { it == null } // Sin errores
+        val noErrors = listOf(s.nameError, s.emailError, s.phoneError, s.passError.isEmpty(), s.confirmError).all { it == null } // Sin errores
         val filled = s.name.isNotBlank() && s.email.isNotBlank() && s.phone.isNotBlank() && s.pass.isNotBlank() && s.confirm.isNotBlank() // Todo lleno
         _register.update { it.copy(canSubmit = noErrors && filled) } // Actualizamos flag
     }

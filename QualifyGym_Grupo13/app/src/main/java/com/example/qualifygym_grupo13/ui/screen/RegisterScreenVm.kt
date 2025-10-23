@@ -40,7 +40,7 @@ fun RegisterScreenVm(
         nameError = state.nameError,                         // Errores por campo
         emailError = state.emailError,
         phoneError = state.phoneError,
-        passError = state.passError,
+        passError = state.passError,                        //hay que pasarle la lista de errores aqui
         confirmError = state.confirmError,
 
         canSubmit = state.canSubmit,                         // Habilitar "Registrar"
@@ -68,7 +68,7 @@ private fun RegisterScreen(
     nameError: String?,                                      // Errores
     emailError: String?,
     phoneError: String?,
-    passError: String?,
+    passError: List<String>,                                 //Aqui ahora le ponemos como parametro la lista de errores
     confirmError: String?,
     canSubmit: Boolean,                                      // Habilitar botón
     isSubmitting: Boolean,                                   // Flag de carga
@@ -126,7 +126,7 @@ private fun RegisterScreen(
                 onValueChange = onEmailChange,               // Notifica VM (valida)
                 label = { Text("Email") },                   // Etiqueta
                 singleLine = true,                           // Una línea
-                isError = emailError != null,                // Marca error
+                isError = passError.isNotEmpty(),            // Marca error
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email        // Teclado de email
                 ),
@@ -162,7 +162,7 @@ private fun RegisterScreen(
                 onValueChange = onPassChange,                // Notifica VM (valida fuerza)
                 label = { Text("Contraseña") },              // Etiqueta
                 singleLine = true,                           // Una línea
-                isError = passError != null,                 // Marca error
+                isError = passError.isNotEmpty(),            // Marca error
                 visualTransformation = if (showPass) VisualTransformation.None else PasswordVisualTransformation(), // Oculta/mostrar
                 trailingIcon = {                             // Icono para alternar visibilidad
                     IconButton(onClick = { showPass = !showPass }) {
@@ -174,8 +174,19 @@ private fun RegisterScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             )
-            if (passError != null) {                         // Muestra error
-                Text(passError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+            //Nueo====
+            if (passError.isNotEmpty()) {                         // Muestra error
+                // Mostramos todos los errores de la lista
+                Column(modifier = Modifier.padding(start = 16.dp, top = 4.dp)) {
+                    passError.forEach { error ->
+                        Text(
+                            text = "El campo $error",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
+            //Text(passError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
             }
 
             Spacer(Modifier.height(8.dp))                    // Espacio
