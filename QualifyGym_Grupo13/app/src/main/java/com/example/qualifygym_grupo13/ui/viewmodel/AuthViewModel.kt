@@ -148,9 +148,16 @@ class AuthViewModel(
     //Aqui hay cambios se agrego el passError.isEmpty()
     private fun recomputeRegisterCanSubmit() {              // Habilitar "Registrar" si todo OK
         val s = _register.value                              // Tomamos el estado actual
-        val noErrors = listOf(s.nameError, s.emailError, s.phoneError, s.passError.isEmpty(), s.confirmError).all { it == null } // Sin errores
+
+        //Comprobar los errores del String
+        val noStringErrors = s.nameError == null && s.emailError == null && s.phoneError == null && s.confirmError == null
+
+        val noPassErrors = s.passError.isEmpty() //Sin errores
+
         val filled = s.name.isNotBlank() && s.email.isNotBlank() && s.phone.isNotBlank() && s.pass.isNotBlank() && s.confirm.isNotBlank() // Todo lleno
-        _register.update { it.copy(canSubmit = noErrors && filled) } // Actualizamos flag
+
+        //Boton habilitado si no hay errores y todo lleno
+        _register.update { it.copy(canSubmit = noStringErrors && noPassErrors && filled) } // Actualizamos flag (boton :v)
     }
 
     fun submitRegister() {                                  // Acción de registro (simulación async)
