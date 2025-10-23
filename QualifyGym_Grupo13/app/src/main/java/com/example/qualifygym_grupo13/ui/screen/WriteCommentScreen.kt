@@ -1,8 +1,5 @@
 package com.example.qualifygym_grupo13.ui.screen
 
-
-
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,7 +18,11 @@ import com.example.qualifygym_grupo13.data.model.Tema
 fun WriteCommentScreen(
     tema: Tema,
     onBackClick: () -> Unit,
-    onPublishClick: (String, String, List<String>) -> Unit
+    onPublishClick: (String, String, List<String>) -> Unit,
+    //Nuevos botones pa las acciones y las fotos ===
+    onTakePhotoClick: () -> Unit,
+    onOpenGalleryClick: () -> Unit
+
 ) {
     var title by remember { mutableStateOf(TextFieldValue("")) }
     var comment by remember { mutableStateOf(TextFieldValue("")) }
@@ -132,39 +133,39 @@ fun WriteCommentScreen(
             }
 
             // Sección de agregar fotos
-            Card(
+            //Funcion Nueva==
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                shape = RoundedCornerShape(12.dp)
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp) // Espacio entre los botones
             ) {
-                Column(
+                // Botón para tomar foto (FilledTonal es más suave que el principal)
+                FilledTonalButton(
+                    onClick = { onTakePhotoClick() }, // Llama a la nueva acción
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
-                        .clickable {
-                            // TODO: Implementar selección de fotos
-                        },
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .height(50.dp) // Un poco más pequeño
                 ) {
                     Icon(
                         Icons.Default.CameraAlt,
-                        contentDescription = "Agregar fotos",
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                        contentDescription = "Tomar Foto"
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Agregar Fotos",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Tomar Foto")
+                }
+
+                OutlinedButton(
+                    onClick = { onOpenGalleryClick() }, // Llama a la nueva acción
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp) // Mismo tamaño para alinear
+                ) {
+                    Icon(
+                        Icons.Default.PhotoLibrary, //Icono de la galeria
+                        contentDescription = "Ver Galeria"
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Toca para seleccionar fotos de tu galería",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Ver en Galería")
                 }
             }
 

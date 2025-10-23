@@ -291,6 +291,16 @@ fun AppNavGraph(navController: NavHostController,
                         onPublishClick = { title, comment, photos ->
                             // TODO: Implementar lógica para publicar comentario
                             navController.popBackStack()
+                        },
+                        onTakePhotoClick = {
+                            // TODO: Aquí irá la lógica para abrir la CÁMARA
+                            // (Esto requerirá un ViewModel y un ActivityResultLauncher)
+                            println("Botón 'Tomar Foto' presionado")
+                        },
+                        onOpenGalleryClick = {
+                            // TODO: Aquí irá la lógica para abrir la GALERÍA
+                            // (Esto requerirá un ViewModel y un ActivityResultLauncher)
+                            println("Botón 'Ver en Galería' presionado")
                         }
                     )
                 }
