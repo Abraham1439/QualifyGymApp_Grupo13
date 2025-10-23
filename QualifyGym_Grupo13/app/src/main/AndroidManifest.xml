@@ -22,6 +22,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- FileProvider para compartir la Uri temporal donde se guarda la foto tomada por la cámara -->
+        <provider
+            android:grantUriPermissions="true"
+            android:exported="false"
+            android:authorities="com.example.qualifygym_grupo13.fileprovider"
+            android:name="androidx.core.content.FileProvider" >
+        <meta-data
+            android:name="android.support.FILE_PROVIDER_PATHS"
+            android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>
