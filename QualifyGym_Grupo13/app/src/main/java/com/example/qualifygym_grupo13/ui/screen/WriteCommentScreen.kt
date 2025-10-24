@@ -6,7 +6,9 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -34,19 +36,37 @@ import java.util.Date
 import java.util.Locale
 
 
-//funcion para guardar la foto capturada por la cámara
+/**
+ * Función para crear un archivo temporal donde se guardará la foto capturada por la cámara
+ * @param context Contexto de la aplicación para acceder al directorio de caché
+ * @return File objeto que representa el archivo temporal donde se guardará la imagen
+ */
 private fun createTempImageFile(context: Context): File{
+    // Genera un timestamp único para evitar nombres de archivo duplicados
     val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+    
+    // Crea el directorio "images" dentro del caché de la aplicación
     val storageDir = File(context.cacheDir,"images").apply {
-        if(!exists()) mkdirs() //crea la carpeta si no existe
+        if(!exists()) mkdirs() // Crea la carpeta si no existe
     }
-    return File(storageDir,"IMG_$timeStamp.jpg") //archivo temporal jpg
+    
+    // Retorna un archivo temporal con nombre único basado en el timestamp
+    return File(storageDir,"IMG_$timeStamp.jpg") // Archivo temporal en formato JPG
 }
 
-//convertir la uri de la imagen mediante el FileProvider
+/**
+ * Función para convertir un archivo local en una URI segura usando FileProvider
+ * Esto es necesario para compartir archivos con otras aplicaciones (como la cámara) de forma segura
+ * @param context Contexto de la aplicación
+ * @param file Archivo local que se quiere convertir a URI
+ * @return Uri URI segura que puede ser compartida con otras aplicaciones
+ */
 private fun getImageUriFile(context: Context, file: File): Uri {
+    // Construye la autoridad del FileProvider usando el package name de la app
     val authority = "${context.packageName}.fileprovider"
-    return FileProvider.getUriForFile(context,authority,file)
+    
+    // Convierte el archivo local en una URI segura usando FileProvider
+    return FileProvider.getUriForFile(context, authority, file)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,29 +83,34 @@ fun WriteCommentScreen(
     var comment by remember { mutableStateOf(TextFieldValue("")) }
 
     // ==========================================================
-    // === LÓGICA DE CÁMARA (Réplica del ejemplo del profesor) ===
+    // === LÓGICA DE CÁMARA - Configuración y Estados ===
     // ==========================================================
-    val context = LocalContext.current
+    val context = LocalContext.current // Obtiene el contexto de la aplicación actual
 
-    // 1. Estado para guardar la Uri de la foto como String (persistente)
+    // Estado persistente para guardar la URI de la foto como String
+    // Se mantiene durante cambios de configuración (rotación de pantalla, etc.)
     var photoUriString by rememberSaveable { mutableStateOf<String?>(null) }
-    // 2. Estado temporal para la Uri antes de lanzar la cámara (no persistente)
+    
+    // Estado temporal para la URI antes de lanzar la cámara (no persistente)
+    // Se usa para pasar la URI a la aplicación de cámara
     var pendingCaptureUri by remember { mutableStateOf<Uri?>(null) }
-    // 3. Estado para mostrar el diálogo de confirmación de borrado
+    
+    // Estado para controlar la visibilidad del diálogo de confirmación de borrado
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    // 4. Launcher para la cámara
+    // Launcher para la aplicación de cámara usando ActivityResultContracts
+    // Este launcher maneja la comunicación con la aplicación de cámara del sistema
     val takePictureLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture(),
-        onResult = { success ->
+        contract = ActivityResultContracts.TakePicture(), // Contrato para tomar fotos
+        onResult = { success -> // Callback que se ejecuta cuando la cámara termina
             if (success) {
-                // Si la foto se tomó, guardamos la Uri pendiente como String
+                // Si la foto se tomó exitosamente, guardamos la URI como String persistente
                 photoUriString = pendingCaptureUri?.toString()
                 Toast.makeText(context, "Foto guardada", Toast.LENGTH_SHORT).show()
             } else {
-                // Si se canceló, limpiamos la Uri pendiente
+                // Si se canceló la captura, limpiamos la URI temporal
                 pendingCaptureUri = null
-                // No mostramos Toast aquí, podría ser molesto si cancela a propósito
+                // No mostramos Toast aquí para evitar molestias si cancela intencionalmente
             }
         }
     )
@@ -113,9 +138,15 @@ fun WriteCommentScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // ScrollView para asegurar que todos los elementos sean visibles
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
             // Sección del tema (sin cambios)
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -139,59 +170,66 @@ fun WriteCommentScreen(
 
 
             // ==========================================================
-            // === SECCIÓN DE FOTOS (Réplica del ejemplo del profesor) ===
+            // === SECCIÓN DE FOTOS - Interfaz de Usuario ===
             // ==========================================================
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // --- VISTA PREVIA ---
+                // --- VISTA PREVIA DE LA IMAGEN ---
                 if (photoUriString.isNullOrEmpty()) {
-                    // Texto si no hay foto
+                    // Muestra texto instructivo cuando no hay foto seleccionada
                     Text(
                         text = "Añade una foto (opcional)",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
-                    // Muestra la imagen usando Coil si hay una Uri guardada
+                    // Muestra la imagen capturada usando la librería Coil
                     AsyncImage(
                         model = ImageRequest.Builder(context)
-                            .data(Uri.parse(photoUriString)) // Convertimos el String de nuevo a Uri
-                            .crossfade(true)
+                            .data(Uri.parse(photoUriString)) // Convierte el String guardado de vuelta a Uri
+                            .crossfade(true) // Efecto de transición suave al cargar
                             .build(),
                         contentDescription = "Foto Tomada",
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp) // Altura de la vista previa
-                            .clip(RoundedCornerShape(12.dp)),
-                        contentScale = ContentScale.Crop // Escala para llenar
+                            .height(200.dp) // Altura fija para la vista previa
+                            .clip(RoundedCornerShape(12.dp)), // Bordes redondeados
+                        contentScale = ContentScale.Crop // Escala la imagen para llenar el espacio
                     )
                 }
 
-                Spacer(Modifier.height(8.dp)) // Espacio antes de los botones
+                Spacer(Modifier.height(8.dp)) // Espacio visual antes de los botones
 
-                // --- BOTÓN TOMAR FOTO ---
+                // --- BOTÓN PRINCIPAL: TOMAR FOTO (SIEMPRE VISIBLE) ---
                 FilledTonalButton(
                     onClick = {
-                        // Lógica del ejemplo del profesor:
-                        val file = createTempImageFile(context) // 1. Crea archivo temporal
-                        val uri = getImageUriFile(context, file) // 2. Obtiene Uri segura
-                        pendingCaptureUri = uri // 3. Guarda la Uri temporalmente
-                        takePictureLauncher.launch(uri) // 4. Lanza la cámara
+                        // PROCESO COMPLETO PARA ABRIR LA CÁMARA:
+                        // 1. Crear archivo temporal donde se guardará la foto
+                        val file = createTempImageFile(context)
+                        
+                        // 2. Convertir el archivo en una URI segura usando FileProvider
+                        val uri = getImageUriFile(context, file)
+                        
+                        // 3. Guardar la URI temporalmente para usarla después
+                        pendingCaptureUri = uri
+                        
+                        // 4. Lanzar la aplicación de cámara del sistema con la URI
+                        takePictureLauncher.launch(uri)
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
                     Icon(Icons.Default.CameraAlt, contentDescription = "Tomar Foto")
                     Spacer(modifier = Modifier.width(8.dp))
-                    // Cambia el texto si ya hay una foto
+                    // Cambia el texto dinámicamente según si ya hay una foto
                     Text(if (photoUriString.isNullOrEmpty()) "Tomar Foto" else "Tomar Otra Foto")
                 }
 
-                // --- BOTÓN GALERÍA ---
+                // --- BOTÓN SECUNDARIO: SELECCIONAR DE GALERÍA (SIEMPRE VISIBLE) ---
                 OutlinedButton(
-                    onClick = { onOpenGalleryClick() }, // Mantenemos la acción para el futuro
+                    onClick = { onOpenGalleryClick() }, // Función callback para abrir galería (implementación futura)
                     modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
                     Icon(Icons.Default.PhotoLibrary, contentDescription = "Ver en Galería")
@@ -199,12 +237,31 @@ fun WriteCommentScreen(
                     Text("Seleccionar de Galería")
                 }
 
-                // --- BOTÓN ELIMINAR FOTO (Solo si hay foto) ---
+                // --- BOTÓN VOLVER A TOMAR FOTO (Solo visible si hay una foto) ---
+                if (!photoUriString.isNullOrEmpty()) {
+                    OutlinedButton(
+                        onClick = {
+                            // Misma lógica que el botón principal pero con texto diferente
+                            val file = createTempImageFile(context)
+                            val uri = getImageUriFile(context, file)
+                            pendingCaptureUri = uri
+                            takePictureLauncher.launch(uri)
+                        },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Volver a Tomar Foto")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Volver a Tomar Foto")
+                    }
+                }
+
+                // --- BOTÓN ELIMINAR FOTO (Solo visible si hay una foto) ---
                 if (!photoUriString.isNullOrEmpty()) {
                     OutlinedButton(
                         onClick = { showDeleteDialog = true }, // Abre el diálogo de confirmación
                         modifier = Modifier.fillMaxWidth().height(50.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error) // Color rojo
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error) // Color rojo para indicar acción destructiva
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = "Eliminar Foto")
                         Spacer(modifier = Modifier.width(8.dp))
@@ -213,36 +270,42 @@ fun WriteCommentScreen(
                 }
             } // Fin Column de botones/imagen
             // === FIN SECCIÓN DE FOTOS ===
+            } // Fin del Column con scroll
 
-
-            Spacer(modifier = Modifier.weight(1f)) // Espacio flexible
-
-            // Botón de publicar (lógica actualizada para pasar la Uri como String)
+            // ==========================================================
+            // === BOTÓN DE PUBLICAR COMENTARIO (SIEMPRE VISIBLE) ===
+            // ==========================================================
             Button(
                 onClick = {
+                    // Prepara la lista de URIs de fotos para enviar al callback
                     val photoUris = if (photoUriString != null) listOf(photoUriString!!) else emptyList()
+                    
+                    // Llama al callback con el título, comentario y lista de fotos
                     onPublishClick(title.text, comment.text, photoUris)
                 },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .padding(16.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Publicar Comentario", style = MaterialTheme.typography.titleMedium)
             }
-        }
+        } // Fin del Column principal
     }
 
     // ==========================================================
-    // === DIÁLOGO DE CONFIRMACIÓN PARA BORRAR LA FOTO ===
+    // === DIÁLOGO DE CONFIRMACIÓN PARA ELIMINAR LA FOTO ===
     // ==========================================================
     if (showDeleteDialog) {
         AlertDialog(
-            onDismissRequest = { showDeleteDialog = false }, // Cierra si toca fuera
+            onDismissRequest = { showDeleteDialog = false }, // Cierra el diálogo si toca fuera
             title = { Text("Confirmar Eliminación") },
             text = { Text("¿Estás seguro de que quieres eliminar la foto?") },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        photoUriString = null // Borra la Uri guardada
+                        photoUriString = null // Elimina la URI guardada (borra la foto)
                         showDeleteDialog = false // Cierra el diálogo
                         Toast.makeText(context, "Foto eliminada", Toast.LENGTH_SHORT).show()
                     }

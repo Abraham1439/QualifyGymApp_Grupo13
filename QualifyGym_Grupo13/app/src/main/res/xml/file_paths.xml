@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- CONFIGURACIÓN DE RUTAS PARA EL FILEPROVIDER -->
+<!-- Este archivo define qué directorios puede acceder el FileProvider -->
 <paths>
-    <!-- Directorio interno de guardado de las fotos -->
+    <!-- Directorio de caché donde se guardan las fotos temporales -->
+    <!-- cache-path se refiere al directorio de caché interno de la aplicación -->
+    <!-- path="images/" especifica la subcarpeta dentro del caché -->
     <cache-path
         name="camera_cache"
         path="images/" />

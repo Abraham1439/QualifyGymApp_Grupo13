@@ -2,14 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Pide permiso para usar el hardware de la cámara del dispositivo -->
-    <uses-permission android:name="android.permission.CAMERA" />
-
-    <!-- 2. Declara que la app USA la cámara, pero NO es obligatoria -->
-    <uses-feature
-        android:name="android.hardware.camera"
-        android:required="false" />
-
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -31,15 +23,19 @@
             </intent-filter>
         </activity>
 
-        <!-- FileProvider para compartir la Uri temporal donde se guarda la foto tomada por la cámara -->
+        <!-- CONFIGURACIÓN DEL FILEPROVIDER PARA LA CÁMARA -->
+        <!-- FileProvider permite compartir archivos de forma segura con otras aplicaciones -->
+        <!-- Es necesario para que la app de cámara pueda escribir en nuestro archivo temporal -->
         <provider
             android:grantUriPermissions="true"
             android:exported="false"
             android:authorities="com.example.qualifygym_grupo13.fileprovider"
             android:name="androidx.core.content.FileProvider" >
-        <meta-data
-            android:name="android.support.FILE_PROVIDER_PATHS"
-            android:resource="@xml/file_paths" />
+            
+            <!-- Configuración de rutas permitidas para el FileProvider -->
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
         </provider>
     </application>
 
