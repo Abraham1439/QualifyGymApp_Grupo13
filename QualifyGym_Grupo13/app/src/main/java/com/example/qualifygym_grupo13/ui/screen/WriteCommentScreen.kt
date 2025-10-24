@@ -74,10 +74,7 @@ private fun getImageUriFile(context: Context, file: File): Uri {
 fun WriteCommentScreen(
     tema: Tema,
     onBackClick: () -> Unit,
-    onPublishClick: (String, String, List<String>) -> Unit,
-    //Nuevos botones pa las acciones y las fotos ===
-    onOpenGalleryClick: () -> Unit
-
+    onPublishClick: (String, String, List<String>) -> Unit
 ) {
     var title by remember { mutableStateOf(TextFieldValue("")) }
     var comment by remember { mutableStateOf(TextFieldValue("")) }
@@ -114,7 +111,21 @@ fun WriteCommentScreen(
             }
         }
     )
-    // === FIN LÓGICA DE CÁMARA ===
+
+    // Launcher para la galería usando ActivityResultContracts
+    // Este launcher maneja la selección de imágenes desde la galería del dispositivo
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(), // Contrato para seleccionar contenido
+        onResult = { uri -> // Callback que se ejecuta cuando se selecciona una imagen
+            if (uri != null) {
+                // Si se seleccionó una imagen, guardamos la URI como String persistente
+                photoUriString = uri.toString()
+                Toast.makeText(context, "Imagen seleccionada", Toast.LENGTH_SHORT).show()
+            }
+            // Si se canceló la selección, no hacemos nada (no mostramos Toast)
+        }
+    )
+    // === FIN LÓGICA DE CÁMARA Y GALERÍA ===
 
 
     Scaffold(
@@ -229,7 +240,10 @@ fun WriteCommentScreen(
 
                 // --- BOTÓN SECUNDARIO: SELECCIONAR DE GALERÍA (SIEMPRE VISIBLE) ---
                 OutlinedButton(
-                    onClick = { onOpenGalleryClick() }, // Función callback para abrir galería (implementación futura)
+                    onClick = { 
+                        // Lanza el selector de imágenes de la galería
+                        pickImageLauncher.launch("image/*") // Filtro para mostrar solo imágenes
+                    },
                     modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
                     Icon(Icons.Default.PhotoLibrary, contentDescription = "Ver en Galería")
