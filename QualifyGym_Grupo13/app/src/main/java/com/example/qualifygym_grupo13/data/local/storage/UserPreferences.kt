@@ -15,7 +15,7 @@ class UserPreferences (private val context: Context) {
     private val issLoggedInKey= booleanPreferencesKey("is_logged_in")
 
     //funcion para setear el valor de la sesion
-    suspend fun setLoggendIn(value: Boolean) {
+    suspend fun setLoggedIn(value: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[issLoggedInKey] = value
 
@@ -23,7 +23,7 @@ class UserPreferences (private val context: Context) {
     }
 
     //funcion exponer el valor de mi variable de store
-    val iLoggendIn: Flow<Boolean> =context.dataStore.data
+    val isLoggedIn: Flow<Boolean> =context.dataStore.data
         .map { prefs -> prefs[issLoggedInKey] ?: false }
 
 }
