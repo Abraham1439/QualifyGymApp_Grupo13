@@ -1,5 +1,6 @@
 package com.example.qualifygym_grupo13.ui.components
 
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons // Conjunto de íconos Material
 import androidx.compose.material.icons.filled.Home // Ícono Home
 import androidx.compose.material.icons.filled.AccountCircle // Ícono Login
@@ -16,6 +17,8 @@ import androidx.compose.material3.MaterialTheme // Tema Material
 import androidx.compose.material3.Text // Texto
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.* // remember / mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,10 +39,12 @@ fun AppTopBar(
         ),
         title = { // Slot del título
             Text(
-                text = "Demo Navegación Compose", // Título visible
+                text = "QualifyGym", // Título visible
                 style = MaterialTheme.typography.titleLarge, // Estilo grande
                 maxLines = 1,              // asegura una sola línea Int.MAX_VALUE   // permite varias líneas
-                overflow = TextOverflow.Ellipsis // agrega "..." si no cabe
+                overflow = TextOverflow.Ellipsis, // agrega "..." si no cabe
+                modifier = Modifier.fillMaxWidth(), // Ocupa todo el ancho disponible
+                textAlign = TextAlign.Left //Hacer que el mombre este para la  izquierda
 
             )
         },
