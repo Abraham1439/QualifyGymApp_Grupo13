@@ -63,11 +63,23 @@ fun AppNavGraph(navController: NavHostController,
     val goLogin: () -> Unit   = { navController.navigate(Route.Login.path) }   // Ir a Login
     val goRegister: () -> Unit = { navController.navigate(Route.Register.path) } // Ir a Registro
     val goForgot: () -> Unit = { navController.navigate(Route.Forgot.path) } // Ir a recuperar
+    val goProfile: () -> Unit = { navController.navigate(Route.Profile.path) } // Ir a Perfil/Configuración
     val openTopicDetail: (String) -> Unit = { topicId -> navController.navigate(Route.TopicDetail.create(topicId)) }
     val openTopic: (String) -> Unit = { topicId -> navController.navigate(Route.PublicationsList.create(topicId)) }
     val openPost: (String) -> Unit = { postId -> navController.navigate(Route.PublicationDetail.create(postId)) }
     val openWriteComment: (String) -> Unit = { topicId -> navController.navigate(Route.WriteComment.create(topicId)) }
     val goChangePassword: () -> Unit = { navController.navigate(Route.ChangePassword.path) }
+    
+    // Acción de cerrar sesión
+    val logout: () -> Unit = {
+        // Limpiar los datos del login
+        authViewModel.clearLoginData()
+        // Navegar a Login y limpiar todo el historial anterior
+        navController.navigate(Route.Login.path) {
+            // Limpia toda la pila de navegación
+            popUpTo(0) { inclusive = true }
+        }
+    }
 
     ModalNavigationDrawer( // Capa superior con drawer lateral
 
@@ -78,22 +90,24 @@ fun AppNavGraph(navController: NavHostController,
 
         drawerContent = { // Contenido del drawer (menú)
             AppDrawer( // Nuestro componente Drawer
-                currentRoute = null, // Puedes pasar navController.currentBackStackEntry?.destination?.route
+                currentRoute = currentRoute, // Ruta actual
                 items = defaultDrawerItems( // Lista estándar
                     onHome = {
                         scope.launch { drawerState.close() } // Cierra drawer
                         goHome() // Navega a Home
                     },
-                    onLogin = {
+                    onSettings = {
                         scope.launch { drawerState.close() } // Cierra drawer
-                        goLogin() // Navega a Login
+                        goProfile() // Navega a Perfil/Configuración
                     },
-                    onRegister = {
+                    onLogout = {
                         scope.launch { drawerState.close() } // Cierra drawer
-                        goRegister() // Navega a Registro
+                        logout() // Cierra sesión
                     }
-
-                )
+                ),
+                userName = "Usuario Demo", // TODO: Obtener del ViewModel
+                userEmail = "usuario@demo.com", // TODO: Obtener del ViewModel
+                userPhotoUri = null // TODO: Obtener del ViewModel
             )
         }
     ) {

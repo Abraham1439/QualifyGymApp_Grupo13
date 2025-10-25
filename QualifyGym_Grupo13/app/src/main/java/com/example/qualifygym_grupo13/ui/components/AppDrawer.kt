@@ -1,17 +1,27 @@
 package com.example.qualifygym_grupo13.ui.components
 
+import android.net.Uri
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons // Íconos Material
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Home // Ícono Home
-import androidx.compose.material.icons.filled.AccountCircle // Ícono Login
-import androidx.compose.material.icons.filled.Person // Ícono Registro
-import androidx.compose.material3.Icon // Ícono en ítem del drawer
-import androidx.compose.material3.NavigationDrawerItem // Ítem seleccionable
-import androidx.compose.material3.NavigationDrawerItemDefaults // Defaults de estilo
-import androidx.compose.material3.Text // Texto
-import androidx.compose.material3.ModalDrawerSheet // Contenedor de contenido del drawer
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.* // Material3
 import androidx.compose.runtime.Composable // Marcador composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier // Modificador
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector // Tipo de ícono
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import coil.compose.rememberAsyncImagePainter
 
 // Pequeña data class para representar cada opción del drawer
 data class DrawerItem( // Estructura de un ítem de menú lateral
@@ -24,33 +34,112 @@ data class DrawerItem( // Estructura de un ítem de menú lateral
 fun AppDrawer(
     currentRoute: String?, // Ruta actual (para marcar seleccionado si quieres)
     items: List<DrawerItem>, // Lista de ítems a mostrar
-    modifier: Modifier = Modifier // Modificador opcional
+    modifier: Modifier = Modifier, // Modificador opcional
+    userName: String = "Usuario Demo",
+    userEmail: String = "usuario@demo.com",
+    userPhotoUri: Uri? = null
 ) {
     ModalDrawerSheet( // Hoja que contiene el contenido del drawer
         modifier = modifier // Modificador encadenable
     ) {
-        // Recorremos las opciones y pintamos ítems
-        items.forEach { item -> // Por cada ítem
+        // Cabecera del drawer con foto de perfil
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Foto de perfil circular
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(3.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                if (userPhotoUri != null) {
+                    Image(
+                        painter = rememberAsyncImagePainter(userPhotoUri),
+                        contentDescription = "Foto de perfil",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Sin foto",
+                        modifier = Modifier.size(40.dp),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Nombre del usuario
+            Text(
+                text = userName,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            
+            // Email del usuario
+            Text(
+                text = userEmail,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Recorremos las opciones principales (Inicio y Configuración)
+        items.dropLast(1).forEach { item -> // Todos excepto el último (Cerrar Sesión)
             NavigationDrawerItem( // Ítem con estados Material
                 label = { Text(item.label) }, // Texto visible
                 selected = false, // Puedes usar currentRoute == ... si quieres marcar
                 onClick = item.onClick, // Acción al pulsar
                 icon = { Icon(item.icon, contentDescription = item.label) }, // Ícono
-                modifier = Modifier, // Sin mods extra
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 colors = NavigationDrawerItemDefaults.colors() // Estilo por defecto
             )
         }
+        
+        Spacer(modifier = Modifier.weight(1f)) // Empuja el botón de cerrar sesión hacia abajo
+        
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        
+        // Botón de Cerrar Sesión al final
+        items.lastOrNull()?.let { logoutItem ->
+            NavigationDrawerItem(
+                label = { Text(logoutItem.label) },
+                selected = false,
+                onClick = logoutItem.onClick,
+                icon = { Icon(logoutItem.icon, contentDescription = logoutItem.label) },
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                colors = NavigationDrawerItemDefaults.colors(
+                    unselectedContainerColor = MaterialTheme.colorScheme.errorContainer,
+                    unselectedTextColor = MaterialTheme.colorScheme.onErrorContainer,
+                    unselectedIconColor = MaterialTheme.colorScheme.onErrorContainer
+                )
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
 // Helper para construir la lista estándar de ítems del drawer
 @Composable
 fun defaultDrawerItems(
-    onHome: () -> Unit,   // Acción Home
-    onLogin: () -> Unit,  // Acción Login
-    onRegister: () -> Unit // Acción Registro
+    onHome: () -> Unit,        // Acción Home
+    onSettings: () -> Unit,    // Acción Configuración
+    onLogout: () -> Unit       // Acción Cerrar Sesión
 ): List<DrawerItem> = listOf(
-    DrawerItem("Home", Icons.Filled.Home, onHome),          // Ítem Home
-    DrawerItem("Login", Icons.Filled.AccountCircle, onLogin),       // Ítem Login
-    DrawerItem("Registro", Icons.Filled.Person, onRegister) // Ítem Registro
+    DrawerItem("Inicio", Icons.Filled.Home, onHome),                         // Ítem Home
+    DrawerItem("Configuración", Icons.Filled.Settings, onSettings),          // Ítem Configuración
+    DrawerItem("Cerrar Sesión", Icons.AutoMirrored.Filled.ExitToApp, onLogout) // Ítem Cerrar Sesión
 )
