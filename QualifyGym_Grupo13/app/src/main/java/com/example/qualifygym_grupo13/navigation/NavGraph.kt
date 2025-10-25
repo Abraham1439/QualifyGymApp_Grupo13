@@ -183,7 +183,11 @@ fun AppNavGraph(navController: NavHostController,
                 }
                 composable(Route.CreatePublication.path) {
                     CreatePublicationScreen(
-                        onPublished = { navController.popBackStack() }
+                        onPublished = { title, topic, description, photoUris ->
+                            // Aquí puedes procesar los datos de la publicación
+                            // Por ahora solo navegamos de vuelta
+                            navController.popBackStack()
+                        }
                     )
                 }
                 composable(Route.Profile.path) {

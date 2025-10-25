@@ -29,10 +29,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.qualifygym_grupo13.data.local.storage.UserPreferences
 import com.example.qualifygym_grupo13.data.model.Tema
 import java.io.File
 import java.text.SimpleDateFormat
