@@ -1,24 +1,38 @@
 package com.example.qualifygym_grupo13.ui.screen
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.LockReset
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.qualifygym_grupo13.data.model.Publicacion // Reutilizamos el modelo de datos
+import androidx.core.content.FileProvider
+import coil.compose.rememberAsyncImagePainter
+import com.example.qualifygym_grupo13.data.model.Publicacion
+import java.io.File
 
 // Pega este código donde estaba tu antiguo ProfileScreen
 @Composable
@@ -175,6 +189,234 @@ private fun SettingsItem(
             Spacer(modifier = Modifier.width(16.dp))
             Text(text = title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+        }
+    }
+}
+
+// =====================Pantalla de edición de perfil =====================
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditProfileScreen(
+    currentName: String = "",
+    currentPhone: String = "",
+    currentEmail: String = "",
+    currentGender: String = "",
+    currentPhotoUri: Uri? = null,
+    onSaved: (name: String, phone: String, email: String, gender: String, photoUri: Uri?) -> Unit,
+    onBack: () -> Unit
+) {
+    val context = LocalContext.current
+    
+    // Estados para los campos del formulario
+    var name by remember { mutableStateOf(currentName) }
+    var phone by remember { mutableStateOf(currentPhone) }
+    var email by remember { mutableStateOf(currentEmail) }
+    var gender by remember { mutableStateOf(currentGender) }
+    var photoUri by remember { mutableStateOf<Uri?>(currentPhotoUri) }
+    
+    // Estado para mostrar el menú de género
+    var genderMenuExpanded by remember { mutableStateOf(false) }
+    val genderOptions = listOf("Masculino", "Femenino", "Otro", "Prefiero no decir")
+    
+    // Estado para el diálogo de selección de foto
+    var showPhotoDialog by remember { mutableStateOf(false) }
+    
+    // Launcher para seleccionar de galería
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { photoUri = it }
+    }
+    
+    // Launcher para tomar foto con cámara
+    val cameraUri = remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            cameraUri.value?.let { photoUri = it }
+        }
+    }
+    
+    // Función para crear el archivo temporal para la cámara
+    fun createImageFile(): Uri {
+        val imageFile = File(context.cacheDir, "images")
+        imageFile.mkdirs()
+        val file = File(imageFile, "profile_${System.currentTimeMillis()}.jpg")
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
+    }
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Editar Perfil") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Foto de Perfil",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            // Sección de foto de perfil
+            Box(
+                modifier = Modifier
+                    .size(150.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .border(3.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                if (photoUri != null) {
+                    Image(
+                        painter = rememberAsyncImagePainter(photoUri),
+                        contentDescription = "Foto de perfil",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Sin foto",
+                        modifier = Modifier.size(80.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Botones de cámara y galería
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Botón Cámara
+                OutlinedButton(
+                    onClick = {
+                        val uri = createImageFile()
+                        cameraUri.value = uri
+                        cameraLauncher.launch(uri)
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.CameraAlt, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Cámara")
+                }
+                
+                // Botón Galería
+                Button(
+                    onClick = { galleryLauncher.launch("image/*") },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Image, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Galería")
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Sección de información personal
+            Text(
+                text = "Información Personal",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            )
+            
+            // Campo: Nombre completo
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Nombre completo") },
+                leadingIcon = {
+                    Icon(Icons.Default.Person, contentDescription = null)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Campo: Teléfono
+            OutlinedTextField(
+                value = phone,
+                onValueChange = { phone = it },
+                label = { Text("Teléfono") },
+                leadingIcon = {
+                    Icon(Icons.Default.Phone, contentDescription = null)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Campo: Correo electrónico
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Correo electrónico") },
+                leadingIcon = {
+                    Icon(Icons.Default.Email, contentDescription = null)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Botones de acción
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Botón Cancelar
+                OutlinedButton(
+                    onClick = onBack,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Cancelar")
+                }
+                
+                // Botón Guardar Cambios
+                Button(
+                    onClick = {
+                        onSaved(name, phone, email, gender, photoUri)
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Guardar Cambios")
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

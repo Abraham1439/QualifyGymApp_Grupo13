@@ -25,6 +25,7 @@ import com.example.qualifygym_grupo13.ui.screen.PublicationsListScreen
 import com.example.qualifygym_grupo13.ui.screen.PublicationDetailScreen
 import com.example.qualifygym_grupo13.ui.screen.CreatePublicationScreen
 import com.example.qualifygym_grupo13.ui.screen.ProfileScreen
+import com.example.qualifygym_grupo13.ui.screen.EditProfileScreen
 import com.example.qualifygym_grupo13.ui.screen.AdminDashboardScreen
 import com.example.qualifygym_grupo13.ui.screen.ManagePublicationsScreen
 import com.example.qualifygym_grupo13.ui.screen.ManageUsersScreen
@@ -221,13 +222,22 @@ fun AppNavGraph(navController: NavHostController,
                         }
                     )
                 }
-                /*composable(Route.EditProfile.path) {
+                composable(Route.EditProfile.path) {
+                    // Idealmente estos valores vendrían del ViewModel/base de datos
                     EditProfileScreen(
                         currentName = "Usuario Demo",
-                        currentEmail = "demo@email.com",
-                        onSaved = { navController.popBackStack() }
+                        currentPhone = "",
+                        currentEmail = "usuario@demo.com",
+                        currentGender = "",
+                        currentPhotoUri = null,
+                        onSaved = { name, phone, email, gender, photoUri ->
+                            // TODO: Guardar los cambios en la base de datos/ViewModel
+                            // Por ahora solo regresamos a la pantalla anterior
+                            navController.popBackStack()
+                        },
+                        onBack = { navController.popBackStack() }
                     )
-                }*/
+                }
                 composable(Route.AdminDashboard.path) {
                     AdminDashboardScreen(
                         onManagePosts = { navController.navigate(Route.ManagePublications.path) },
