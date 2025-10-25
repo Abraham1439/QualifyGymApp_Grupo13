@@ -5,6 +5,10 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.core.content.ContextCompat
+import androidx.core.content.PermissionChecker
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -69,6 +73,18 @@ private fun getImageUriFile(context: Context, file: File): Uri {
     return FileProvider.getUriForFile(context, authority, file)
 }
 
+/**
+ * Función para verificar si la aplicación tiene permisos de cámara
+ * @param context Contexto de la aplicación
+ * @return Boolean true si tiene permisos, false si no
+ */
+private fun hasCameraPermission(context: Context): Boolean {
+    return ContextCompat.checkSelfPermission(
+        context,
+        android.Manifest.permission.CAMERA
+    ) == PermissionChecker.PERMISSION_GRANTED
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WriteCommentScreen(
@@ -94,6 +110,9 @@ fun WriteCommentScreen(
     
     // Estado para controlar la visibilidad del diálogo de confirmación de borrado
     var showDeleteDialog by remember { mutableStateOf(false) }
+    
+    // Estado para controlar la visibilidad del diálogo de permisos de cámara
+    var showPermissionDialog by remember { mutableStateOf(false) }
 
     // Launcher para la aplicación de cámara usando ActivityResultContracts
     // Este launcher maneja la comunicación con la aplicación de cámara del sistema
@@ -125,8 +144,40 @@ fun WriteCommentScreen(
             // Si se canceló la selección, no hacemos nada (no mostramos Toast)
         }
     )
+    
+    // Launcher para solicitar permisos de cámara
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            // Si se otorgó el permiso, proceder a tomar la foto
+            val file = createTempImageFile(context)
+            val uri = getImageUriFile(context, file)
+            pendingCaptureUri = uri
+            takePictureLauncher.launch(uri)
+        } else {
+            // Si se denegó el permiso, mostrar mensaje
+            Toast.makeText(context, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
+        }
+    }
     // === FIN LÓGICA DE CÁMARA Y GALERÍA ===
 
+    /**
+     * Función para manejar el clic del botón de tomar foto
+     * Verifica permisos antes de abrir la cámara
+     */
+    fun handleTakePhotoClick() {
+        if (hasCameraPermission(context)) {
+            // Si ya tiene permisos, proceder directamente
+            val file = createTempImageFile(context)
+            val uri = getImageUriFile(context, file)
+            pendingCaptureUri = uri
+            takePictureLauncher.launch(uri)
+        } else {
+            // Si no tiene permisos, mostrar diálogo explicativo
+            showPermissionDialog = true
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -158,7 +209,7 @@ fun WriteCommentScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-            // Sección del tema (sin cambios)
+            // Sección del tema
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
@@ -175,14 +226,12 @@ fun WriteCommentScreen(
                 }
             }
 
-            // Campos de texto (sin cambios)
+            // Campos de texto
             OutlinedTextField( /*...*/ value = title.text, onValueChange = {title = TextFieldValue(it)}, placeholder = {Text("Título...")}, modifier= Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField( /*...*/ value = comment.text, onValueChange = {comment = TextFieldValue(it)}, placeholder = {Text("Comentario...")}, modifier= Modifier.fillMaxWidth().height(120.dp), maxLines=5)
 
 
-            // ==========================================================
             // === SECCIÓN DE FOTOS - Interfaz de Usuario ===
-            // ==========================================================
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -216,20 +265,7 @@ fun WriteCommentScreen(
 
                 // --- BOTÓN PRINCIPAL: TOMAR FOTO (SIEMPRE VISIBLE) ---
                 FilledTonalButton(
-                    onClick = {
-                        // PROCESO COMPLETO PARA ABRIR LA CÁMARA:
-                        // 1. Crear archivo temporal donde se guardará la foto
-                        val file = createTempImageFile(context)
-                        
-                        // 2. Convertir el archivo en una URI segura usando FileProvider
-                        val uri = getImageUriFile(context, file)
-                        
-                        // 3. Guardar la URI temporalmente para usarla después
-                        pendingCaptureUri = uri
-                        
-                        // 4. Lanzar la aplicación de cámara del sistema con la URI
-                        takePictureLauncher.launch(uri)
-                    },
+                    onClick = { handleTakePhotoClick() },
                     modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
                     Icon(Icons.Default.CameraAlt, contentDescription = "Tomar Foto")
@@ -254,13 +290,7 @@ fun WriteCommentScreen(
                 // --- BOTÓN VOLVER A TOMAR FOTO (Solo visible si hay una foto) ---
                 if (!photoUriString.isNullOrEmpty()) {
                     OutlinedButton(
-                        onClick = {
-                            // Misma lógica que el botón principal pero con texto diferente
-                            val file = createTempImageFile(context)
-                            val uri = getImageUriFile(context, file)
-                            pendingCaptureUri = uri
-                            takePictureLauncher.launch(uri)
-                        },
+                        onClick = { handleTakePhotoClick() },
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                     ) {
@@ -282,13 +312,11 @@ fun WriteCommentScreen(
                         Text("Eliminar Foto")
                     }
                 }
-            } // Fin Column de botones/imagen
-            // === FIN SECCIÓN DE FOTOS ===
-            } // Fin del Column con scroll
+            }
 
-            // ==========================================================
+            }
+
             // === BOTÓN DE PUBLICAR COMENTARIO (SIEMPRE VISIBLE) ===
-            // ==========================================================
             Button(
                 onClick = {
                     // Prepara la lista de URIs de fotos para enviar al callback
@@ -305,12 +333,10 @@ fun WriteCommentScreen(
             ) {
                 Text("Publicar Comentario", style = MaterialTheme.typography.titleMedium)
             }
-        } // Fin del Column principal
+        }
     }
 
-    // ==========================================================
     // === DIÁLOGO DE CONFIRMACIÓN PARA ELIMINAR LA FOTO ===
-    // ==========================================================
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false }, // Cierra el diálogo si toca fuera
@@ -327,6 +353,28 @@ fun WriteCommentScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    // === DIÁLOGO DE PERMISOS PA LA CÁMARA ===
+    if (showPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showPermissionDialog = false },
+            title = { Text("Permiso de Cámara") },
+            text = {
+                Text("Esta aplicación necesita acceso a la cámara para tomar fotos. ¿Permitir el acceso?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showPermissionDialog = false
+                        requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                    }
+                ) { Text("Permitir") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionDialog = false }) { Text("Cancelar") }
             }
         )
     }
