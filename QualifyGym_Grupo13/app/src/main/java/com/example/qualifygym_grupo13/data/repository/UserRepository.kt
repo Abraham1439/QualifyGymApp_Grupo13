@@ -14,7 +14,7 @@ class UserRepository(
         return if (user != null && user.password == password) {      // Verifica pass
             Result.success(user)                                     // Éxito
         } else {
-            Result.failure(IllegalArgumentException("Credenciales inválidas")) // Error
+            Result.failure(IllegalArgumentException("La cuenta no existe o la contraseña es incorrecta")) // Error
         }
     }
 
