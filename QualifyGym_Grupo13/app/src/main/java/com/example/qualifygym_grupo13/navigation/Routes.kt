@@ -8,6 +8,7 @@ sealed class Route(val path: String) { // Cada objeto representa una pantalla
     data object Login    : Route("login")       // Ruta Login
     data object Register : Route("register")    // Ruta Registro
     data object Forgot   : Route("forgot")      // Recuperar contraseña
+    data object ChangePassword : Route("changePassword") // Cambiar contraseña
 
     // Foro - navegación con argumentos en la ruta
     data object TopicDetail : Route("topicDetail/{topicId}") { // Detalle del tema

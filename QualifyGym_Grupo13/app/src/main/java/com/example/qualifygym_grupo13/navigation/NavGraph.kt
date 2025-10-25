@@ -30,6 +30,7 @@ import com.example.qualifygym_grupo13.ui.screen.ManagePublicationsScreen
 import com.example.qualifygym_grupo13.ui.screen.ManageUsersScreen
 import com.example.qualifygym_grupo13.ui.screen.ManageThemesScreen
 import com.example.qualifygym_grupo13.ui.screen.ForgotPasswordScreen
+import com.example.qualifygym_grupo13.ui.screen.ChangePasswordScreen
 import com.example.qualifygym_grupo13.ui.screen.LoginScreenVm
 import com.example.qualifygym_grupo13.ui.screen.RegisterScreenVm
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel
@@ -52,7 +53,8 @@ fun AppNavGraph(navController: NavHostController,
         Route.Splash.path,
         Route.Login.path,
         Route.Register.path,
-        Route.Forgot.path
+        Route.Forgot.path,
+        Route.ChangePassword.path
     )
 
     // Helpers de navegación (reutilizamos en topbar/drawer/botones)
@@ -64,6 +66,7 @@ fun AppNavGraph(navController: NavHostController,
     val openTopic: (String) -> Unit = { topicId -> navController.navigate(Route.PublicationsList.create(topicId)) }
     val openPost: (String) -> Unit = { postId -> navController.navigate(Route.PublicationDetail.create(postId)) }
     val openWriteComment: (String) -> Unit = { topicId -> navController.navigate(Route.WriteComment.create(topicId)) }
+    val goChangePassword: () -> Unit = { navController.navigate(Route.ChangePassword.path) }
 
     ModalNavigationDrawer( // Capa superior con drawer lateral
 
@@ -192,7 +195,7 @@ fun AppNavGraph(navController: NavHostController,
                         name = userName,
                         email = userEmail,
                         onEditProfile = { navController.navigate(Route.EditProfile.path) },
-                        onChangePassword = { /* TODO: Navegar a una nueva pantalla de cambio de contraseña */ },
+                        onChangePassword = goChangePassword,
                         onHelpAndSupport = { /* TODO: Navegar a una pantalla de ayuda */ },
                         onPublicationClick = { postId ->
                             // Reutilizamos la navegación que ya tenías para ver el detalle de un post
@@ -322,6 +325,11 @@ fun AppNavGraph(navController: NavHostController,
                 composable(Route.Forgot.path) {
                     ForgotPasswordScreen(
                         onBackToLogin = { navController.popBackStack() }
+                    )
+                }
+                composable(Route.ChangePassword.path) {
+                    ChangePasswordScreen(
+                        onPasswordChanged = { navController.popBackStack() }
                     )
                 }
             }
