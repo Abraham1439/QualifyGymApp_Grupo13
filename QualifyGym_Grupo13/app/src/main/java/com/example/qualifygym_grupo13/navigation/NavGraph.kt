@@ -7,11 +7,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.qualifygym_grupo13.ui.components.AppDrawer
 import com.example.qualifygym_grupo13.ui.components.AppTopBar
 import com.example.qualifygym_grupo13.ui.components.defaultDrawerItems
@@ -41,6 +43,18 @@ fun AppNavGraph(navController: NavHostController,
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed) // Estado del drawer
     val scope = rememberCoroutineScope() // Necesario para abrir/cerrar drawer
 
+    //Obtener la ruta actual
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    //Definir las rutas que no tendran el topbar/drawer
+    val routesWithoutBars = listOf(
+        Route.Splash.path,
+        Route.Login.path,
+        Route.Register.path,
+        Route.Forgot.path
+    )
+
     // Helpers de navegación (reutilizamos en topbar/drawer/botones)
     val goHome: () -> Unit    = { navController.navigate(Route.Home.path) }    // Ir a Home
     val goLogin: () -> Unit   = { navController.navigate(Route.Login.path) }   // Ir a Login
@@ -52,7 +66,12 @@ fun AppNavGraph(navController: NavHostController,
     val openWriteComment: (String) -> Unit = { topicId -> navController.navigate(Route.WriteComment.create(topicId)) }
 
     ModalNavigationDrawer( // Capa superior con drawer lateral
+
         drawerState = drawerState, //estado del drawer
+
+        //Desabilitar el gesto de abrir el drawer en las pantallas sin barrra
+        gesturesEnabled = !routesWithoutBars.contains(currentRoute),
+
         drawerContent = { // Contenido del drawer (menú)
             AppDrawer( // Nuestro componente Drawer
                 currentRoute = null, // Puedes pasar navController.currentBackStackEntry?.destination?.route
@@ -76,12 +95,15 @@ fun AppNavGraph(navController: NavHostController,
     ) {
         Scaffold (
             topBar = { // Barra superior con íconos/menú
-                AppTopBar(
-                    onOpenDrawer = { scope.launch { drawerState.open() } }, // Abre drawer
-                    onHome = goHome,     // Botón Home
-                    onLogin = goLogin,   // Botón Login
-                    onRegister = goRegister // Botón Registro
-                )
+                //Mostrar la topBar solo si la ruta actual no esta en la lista
+                if (!routesWithoutBars.contains(currentRoute)) {
+                    AppTopBar(
+                        onOpenDrawer = { scope.launch { drawerState.open() } }, // Abre drawer
+                        onHome = goHome,     // Botón Home
+                        onLogin = goLogin,   // Botón Login
+                        onRegister = goRegister // Botón Registro
+                    )
+                }
             }
         ){ innerPadding -> // Padding que evita solapar contenido
             NavHost( // Contenedor de destinos navegables
