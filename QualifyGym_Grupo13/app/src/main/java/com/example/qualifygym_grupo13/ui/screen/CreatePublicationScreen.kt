@@ -78,7 +78,8 @@ private fun hasCameraPermission(context: Context): Boolean {
 
 @Composable
 fun CreatePublicationScreen(
-    onPublished: (String, String, String, List<String>) -> Unit
+    onPublished: (String, String, String, List<String>) -> Unit,
+    onCancel: () -> Unit = {}
 ) {
     val (title, setTitle) = remember { mutableStateOf("") }
     val (desc, setDesc) = remember { mutableStateOf("") }
@@ -289,20 +290,39 @@ fun CreatePublicationScreen(
         }
         // === FIN SECCIÓN DE FOTOS ===
         
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(24.dp))
         
-        Button(
-            onClick = {
-                // Prepara la lista de URIs de fotos para enviar al callback
-                val photoUris = if (photoUriString != null) listOf(photoUriString!!) else emptyList()
-                
-                // Llama al callback con el título, tema, descripción y lista de fotos
-                onPublished(title, topic, desc, photoUris)
-            },
-            enabled = title.isNotBlank() && topic.isNotBlank() && desc.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
+        // Botones de acción
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Publicar")
+            // Botón Cancelar
+            OutlinedButton(
+                onClick = onCancel,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp)
+            ) {
+                Text("Cancelar")
+            }
+            
+            // Botón Publicar
+            Button(
+                onClick = {
+                    // Prepara la lista de URIs de fotos para enviar al callback
+                    val photoUris = if (photoUriString != null) listOf(photoUriString!!) else emptyList()
+                    
+                    // Llama al callback con el título, tema, descripción y lista de fotos
+                    onPublished(title, topic, desc, photoUris)
+                },
+                enabled = title.isNotBlank() && topic.isNotBlank() && desc.isNotBlank(),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp)
+            ) {
+                Text("Publicar")
+            }
         }
     }
 

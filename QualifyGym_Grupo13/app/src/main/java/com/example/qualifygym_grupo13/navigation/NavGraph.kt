@@ -213,6 +213,10 @@ fun AppNavGraph(navController: NavHostController,
                             // Aquí puedes procesar los datos de la publicación
                             // Por ahora solo navegamos de vuelta
                             navController.popBackStack()
+                        },
+                        onCancel = {
+                            // Regresa a la pantalla anterior sin guardar
+                            navController.popBackStack()
                         }
                     )
                 }
