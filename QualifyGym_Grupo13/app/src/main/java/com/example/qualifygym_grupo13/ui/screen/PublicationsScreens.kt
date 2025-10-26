@@ -30,18 +30,31 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PublicationsListScreen(
     topicId: String,
     publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel? = null,
     onOpenPost: (String) -> Unit,
-    onCreateNew: () -> Unit
+    onBack: () -> Unit,
+    onCreateNew: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val db = AppDatabase.getInstance(context)
     
     // Obtener publicaciones del tema desde la base de datos
     val publicacionesDb by publicacionViewModel?.allPublicaciones?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
+    
+    // Obtener el nombre del tema
+    var temaNombre by remember { mutableStateOf("Publicaciones") }
+    
+    LaunchedEffect(topicId) {
+        val temaId = topicId.toLongOrNull()
+        if (temaId != null) {
+            val tema = db.temaDao().getById(temaId)
+            temaNombre = tema?.nombre_tema ?: "Publicaciones"
+        }
+    }
     
     // Filtrar publicaciones por tema y que no estén ocultas
     val publicacionesFiltradas = publicacionesDb.filter { 
@@ -64,10 +77,23 @@ fun PublicationsListScreen(
     }
 
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(onClick = onCreateNew) {
-                Icon(Icons.Default.Add, contentDescription = "Nueva publicación")
-            }
+        topBar = {
+            TopAppBar(
+                title = { Text(temaNombre) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver a búsqueda"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
+            )
         }
     ) { inner ->
         if (publicacionesFiltradas.isEmpty()) {

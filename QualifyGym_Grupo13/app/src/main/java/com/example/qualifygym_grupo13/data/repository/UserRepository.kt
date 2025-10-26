@@ -8,6 +8,11 @@ class UserRepository(
     private val userDao: UserDao // Inyección del DAO
 ) {
 
+    // Obtener usuario por ID (para restaurar sesión)
+    suspend fun getUserById(userId: Long): UserEntity? {
+        return userDao.getById(userId)
+    }
+
     // Login: busca por email y valida contraseña
     suspend fun login(email: String, password: String): Result<UserEntity> {
         val user = userDao.getByEmail(email)                         // Busca usuario

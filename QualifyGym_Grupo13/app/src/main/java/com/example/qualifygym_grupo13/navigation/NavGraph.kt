@@ -152,12 +152,32 @@ fun AppNavGraph(
             ) {
 
                 composable(Route.Splash.path) {
+                    // Observar el estado de verificación de sesión
+                    val isCheckingSession by authViewModel.isCheckingSession.collectAsState()
+                    val currentUser by authViewModel.currentUser.collectAsState()
+                    
+                    // Cuando termine de verificar la sesión, navegar según el resultado
+                    LaunchedEffect(isCheckingSession) {
+                        if (!isCheckingSession) {
+                            // Si ya terminó de verificar
+                            if (currentUser != null) {
+                                // Si hay usuario logueado, ir a Home
+                                navController.navigate(Route.Home.path) {
+                                    popUpTo(Route.Splash.path) { inclusive = true }
+                                }
+                            } else {
+                                // Si no hay usuario, ir a Login
+                                navController.navigate(Route.Login.path) {
+                                    popUpTo(Route.Splash.path) { inclusive = true }
+                                }
+                            }
+                        }
+                    }
+                    
                     SplashScreen(
                         onFinished = {
-                            // Por ahora vamos a Home. Si tuvieras auth persistido, puedes decidir aquí
-                            navController.navigate(Route.Login.path) {
-                                popUpTo(Route.Splash.path) { inclusive = true }
-                            }
+                            // Este callback ya no es necesario, pero lo mantenemos por compatibilidad
+                            // La navegación ahora se maneja en el LaunchedEffect anterior
                         }
                     )
                 }
@@ -216,7 +236,7 @@ fun AppNavGraph(
                         topicId = topicId,
                         publicacionViewModel = publicacionViewModel,
                         onOpenPost = openPost,
-                        onCreateNew = { navController.navigate(Route.CreatePublication.path) }
+                        onBack = { navController.popBackStack() }
                     )
                 }
                 composable(Route.PublicationDetail.path) { backStackEntry ->

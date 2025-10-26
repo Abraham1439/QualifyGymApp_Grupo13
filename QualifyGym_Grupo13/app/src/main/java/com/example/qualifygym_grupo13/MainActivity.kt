@@ -15,6 +15,7 @@ import com.example.qualifygym_grupo13.data.repository.ComentarioRepository
 import com.example.qualifygym_grupo13.data.repository.PublicacionRepository
 import com.example.qualifygym_grupo13.data.repository.TemaRepository
 import com.example.qualifygym_grupo13.data.repository.UserRepository
+import com.example.qualifygym_grupo13.data.preferences.SessionManager
 import com.example.qualifygym_grupo13.navigation.AppNavGraph
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModelFactory
@@ -56,10 +57,13 @@ fun AppRoot() { // Raíz de la app para separar responsabilidades (se conserva)
     val userRepository = UserRepository(userDao)
     // ^ Repositorio que encapsula la lógica de login/registro contra Room.
 
+    val sessionManager = SessionManager(context)
+    // ^ Gestor de sesión simple con SharedPreferences.
+
     val authViewModel: AuthViewModel = viewModel(
-        factory = AuthViewModelFactory(userRepository)
+        factory = AuthViewModelFactory(userRepository, sessionManager)
     )
-    // ^ Creamos el ViewModel con factory para inyectar el repositorio.
+    // ^ Creamos el ViewModel con factory para inyectar las dependencias.
 
     // Creamos los repositorios para publicaciones
     val publicacionRepository = PublicacionRepository(db.publicacionDao())

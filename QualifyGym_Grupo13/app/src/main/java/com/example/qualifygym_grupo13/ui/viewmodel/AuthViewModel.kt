@@ -12,6 +12,7 @@ import com.example.qualifygym_grupo13.domain.validation.*             // Importa
 // 1.- 🔁 NUEVO: importamos el repositorio real que habla con Room/SQLite
 import com.example.qualifygym_grupo13.data.repository.UserRepository
 import com.example.qualifygym_grupo13.data.local.user.UserEntity
+import com.example.qualifygym_grupo13.data.preferences.SessionManager
 
 // ----------------- ESTADOS DE UI (observable con StateFlow) -----------------
 
@@ -51,7 +52,9 @@ data class RegisterUiState(                                // Estado de la panta
 
 class AuthViewModel(
     //NUEVO: 4.- inyectamos el repositorio real que usa Room/SQLite
-    private val repository: UserRepository
+    private val repository: UserRepository,
+    // Gestor de sesión para persistencia simple
+    private val sessionManager: SessionManager
 ) : ViewModel() {                         // ViewModel que maneja Login/Registro
 
     // 3.- Eliminamos Colección **estática** en memoria compartida entre instancias del VM (sin storage persistente)
@@ -67,6 +70,15 @@ class AuthViewModel(
     // Estado del usuario actual (después de login exitoso)
     private val _currentUser = MutableStateFlow<UserEntity?>(null)
     val currentUser: StateFlow<UserEntity?> = _currentUser
+    
+    // Estado para indicar si se está verificando la sesión guardada
+    private val _isCheckingSession = MutableStateFlow(true)
+    val isCheckingSession: StateFlow<Boolean> = _isCheckingSession
+    
+    init {
+        // Al iniciar el ViewModel, intentar restaurar la sesión guardada
+        restoreSession()
+    }
 
     // ----------------- LOGIN: handlers y envío -----------------
 
@@ -102,12 +114,46 @@ class AuthViewModel(
             _login.update {
                 if (result.isSuccess) {
                     // Guardar el usuario actual cuando el login sea exitoso
-                    _currentUser.value = result.getOrNull()
+                    val user = result.getOrNull()
+                    _currentUser.value = user
+                    
+                    // NUEVO: Guardar la sesión en SharedPreferences
+                    user?.let {
+                        sessionManager.saveUserSession(it.id, it.email)
+                    }
+                    
                     it.copy(isSubmitting = false, success = true, errorMsg = null) // OK: éxito
                 } else {
                     it.copy(isSubmitting = false, success = false,
                         errorMsg = result.exceptionOrNull()?.message ?: "Error de autenticación")
                 }
+            }
+        }
+    }
+    
+    /**
+     * Restaura la sesión guardada al iniciar la app
+     */
+    private fun restoreSession() {
+        viewModelScope.launch {
+            try {
+                // Verificar si hay sesión guardada
+                val userId = sessionManager.getUserId()
+                if (userId != null && sessionManager.isLoggedIn()) {
+                    // Intentar obtener el usuario de la base de datos
+                    val user = repository.getUserById(userId)
+                    if (user != null) {
+                        _currentUser.value = user
+                    } else {
+                        // Si el usuario no existe en la BD, limpiar la sesión
+                        sessionManager.clearSession()
+                    }
+                }
+            } catch (e: Exception) {
+                // Si hay algún error, simplemente no restauramos la sesión
+                sessionManager.clearSession()
+            } finally {
+                _isCheckingSession.value = false
             }
         }
     }
@@ -249,5 +295,8 @@ class AuthViewModel(
         _login.update { LoginUiState() }
         _register.update { RegisterUiState() }
         _currentUser.value = null // Limpiar usuario actual
+        
+        // NUEVO: Limpiar la sesión guardada
+        sessionManager.clearSession()
     }
 }
