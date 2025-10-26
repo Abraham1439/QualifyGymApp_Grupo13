@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -76,14 +77,29 @@ private fun hasCameraPermission(context: Context): Boolean {
     ) == PermissionChecker.PERMISSION_GRANTED
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreatePublicationScreen(
-    onPublished: (String, String, String, List<String>) -> Unit,
+    authViewModel: com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel? = null,
+    publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel? = null,
+    onPublished: () -> Unit = {},
     onCancel: () -> Unit = {}
 ) {
     val (title, setTitle) = remember { mutableStateOf("") }
     val (desc, setDesc) = remember { mutableStateOf("") }
-    val (topic, setTopic) = remember { mutableStateOf("") }
+    
+    // Obtener usuario actual y temas desde ViewModels
+    val currentUser by authViewModel?.currentUser?.collectAsState() ?: remember { mutableStateOf(null) }
+    val temas by publicacionViewModel?.allTemas?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
+    val isLoading by publicacionViewModel?.isLoading?.collectAsState() ?: remember { mutableStateOf(false) }
+    val errorMessage by publicacionViewModel?.errorMessage?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
+    val successMessage by publicacionViewModel?.successMessage?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
+    
+    // Estado para el tema seleccionado
+    var selectedTema by remember { mutableStateOf<com.example.qualifygym_grupo13.data.local.tema.TemaEntity?>(null) }
+    var expanded by remember { mutableStateOf(false) }
+    
+    val scope = rememberCoroutineScope()
 
     // ==========================================================
     // === LÓGICA DE CÁMARA - Configuración y Estados ===
@@ -185,12 +201,42 @@ fun CreatePublicationScreen(
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = topic,
-            onValueChange = setTopic,
-            label = { Text("Tema") },
-            modifier = Modifier.fillMaxWidth()
-        )
+        
+        // Selector de tema usando ExposedDropdownMenu
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            OutlinedTextField(
+                value = selectedTema?.nombre_tema ?: "",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Tema") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(),
+                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+            )
+            
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                temas.forEach { tema ->
+                    DropdownMenuItem(
+                        text = { Text(tema.nombre_tema) },
+                        onClick = {
+                            selectedTema = tema
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+        
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
             value = desc,
@@ -290,6 +336,41 @@ fun CreatePublicationScreen(
         }
         // === FIN SECCIÓN DE FOTOS ===
         
+        Spacer(Modifier.height(16.dp))
+        
+        // Mostrar mensajes de error y éxito
+        if (errorMessage != null) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = errorMessage!!,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+        
+        if (successMessage != null) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = successMessage!!,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+        
         Spacer(Modifier.height(24.dp))
         
         // Botones de acción
@@ -302,7 +383,8 @@ fun CreatePublicationScreen(
                 onClick = onCancel,
                 modifier = Modifier
                     .weight(1f)
-                    .height(50.dp)
+                    .height(50.dp),
+                enabled = !isLoading
             ) {
                 Text("Cancelar")
             }
@@ -310,18 +392,47 @@ fun CreatePublicationScreen(
             // Botón Publicar
             Button(
                 onClick = {
-                    // Prepara la lista de URIs de fotos para enviar al callback
-                    val photoUris = if (photoUriString != null) listOf(photoUriString!!) else emptyList()
+                    if (currentUser == null) {
+                        Toast.makeText(context, "Debe iniciar sesión", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
                     
-                    // Llama al callback con el título, tema, descripción y lista de fotos
-                    onPublished(title, topic, desc, photoUris)
+                    if (selectedTema == null) {
+                        Toast.makeText(context, "Debe seleccionar un tema", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    
+                    scope.launch {
+                        publicacionViewModel?.clearMessages()
+                        
+                        val result = publicacionViewModel?.createPublicacion(
+                            titulo = title,
+                            descripcion = desc,
+                            userId = currentUser!!.id,
+                            temaId = selectedTema!!.id_tema
+                        )
+                        
+                        if (result?.isSuccess == true) {
+                            Toast.makeText(context, "Publicación creada exitosamente", Toast.LENGTH_SHORT).show()
+                            kotlinx.coroutines.delay(1000)
+                            onPublished()
+                        }
+                    }
                 },
-                enabled = title.isNotBlank() && topic.isNotBlank() && desc.isNotBlank(),
+                enabled = title.isNotBlank() && selectedTema != null && desc.isNotBlank() && !isLoading,
                 modifier = Modifier
                     .weight(1f)
                     .height(50.dp)
             ) {
-                Text("Publicar")
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Publicar")
+                }
             }
         }
     }

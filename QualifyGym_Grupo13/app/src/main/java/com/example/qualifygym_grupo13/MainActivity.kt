@@ -11,10 +11,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.example.qualifygym_grupo13.data.local.database.AppDatabase
+import com.example.qualifygym_grupo13.data.repository.ComentarioRepository
+import com.example.qualifygym_grupo13.data.repository.PublicacionRepository
+import com.example.qualifygym_grupo13.data.repository.TemaRepository
 import com.example.qualifygym_grupo13.data.repository.UserRepository
 import com.example.qualifygym_grupo13.navigation.AppNavGraph
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModelFactory
+import com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel
+import com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,7 +60,19 @@ fun AppRoot() { // Raíz de la app para separar responsabilidades (se conserva)
         factory = AuthViewModelFactory(userRepository)
     )
     // ^ Creamos el ViewModel con factory para inyectar el repositorio.
-    //   Esto reemplaza cualquier uso anterior de listas en memoria (USERS).
+
+    // Creamos los repositorios para publicaciones
+    val publicacionRepository = PublicacionRepository(db.publicacionDao())
+    val temaRepository = TemaRepository(db.temaDao())
+    val comentarioRepository = ComentarioRepository(db.comentarioDao())
+
+    val publicacionViewModel: PublicacionViewModel = viewModel(
+        factory = PublicacionViewModelFactory(
+            publicacionRepository,
+            temaRepository,
+            comentarioRepository
+        )
+    )
 
     val navController = rememberNavController() // Controlador de navegación (igual que antes)
     MaterialTheme { // Provee colores/tipografías Material 3 (igual que antes)
@@ -66,7 +83,8 @@ fun AppRoot() { // Raíz de la app para separar responsabilidades (se conserva)
             // para que toda la app use la MISMA instancia que acabamos de inyectar.
             AppNavGraph(
                 navController = navController,
-                authViewModel = authViewModel // <-- NUEVO parámetro
+                authViewModel = authViewModel,
+                publicacionViewModel = publicacionViewModel
             )
             // NOTA: Si tu AppNavGraph no tiene este parámetro aún, basta con agregarlo:
             // fun AppNavGraph(navController: NavHostController, authViewModel: AuthViewModel) { ... }

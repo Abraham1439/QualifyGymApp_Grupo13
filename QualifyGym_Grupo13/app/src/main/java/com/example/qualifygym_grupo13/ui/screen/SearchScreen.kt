@@ -20,15 +20,31 @@ import com.example.qualifygym_grupo13.data.model.Tema
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
+    publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel? = null,
     onBack: () -> Unit,
-    onTopicClick: (String) -> Unit
+    onTopicClick: (String) -> Unit,
+    onPublicationClick: (String) -> Unit = {}
 ) {
     // Estado de búsqueda
     var searchQuery by remember { mutableStateOf("") }
     
-    // Datos de ejemplo de temas
-    val allThemes = remember {
-        listOf(
+    // Obtener datos reales de la base de datos
+    val temasDb by publicacionViewModel?.allTemas?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
+    val publicacionesDb by publicacionViewModel?.allPublicaciones?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
+    
+    // Convertir temas de BD a modelos UI
+    val allThemes = remember(temasDb, publicacionesDb) {
+        temasDb.map { temaEntity ->
+            Tema(
+                id = temaEntity.id_tema.toString(),
+                nombre = temaEntity.nombre_tema,
+                descripcion = "Explora publicaciones sobre ${temaEntity.nombre_tema}",
+                ubicacion = "",
+                numeroPublicaciones = publicacionesDb.count { it.Tema_id_tema == temaEntity.id_tema }
+            )
+        }.ifEmpty {
+            // Datos de ejemplo solo si la BD está vacía
+            listOf(
             Tema(
                 id = "1",
                 nombre = "Rutinas de Fuerza",
@@ -99,7 +115,7 @@ fun SearchScreen(
                 ubicacion = "Las Condes, Av. El Golf 456",
                 numeroPublicaciones = 38
             )
-        )
+        )}
     }
     
     // Filtrar temas basado en la búsqueda

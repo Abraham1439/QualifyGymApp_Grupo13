@@ -21,48 +21,41 @@ import com.example.qualifygym_grupo13.navigation.BottomNavItem
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    // Estas son las acciones que tu NavGraph le pasará
-    // (Tu HomeScreen antiguo solo tenía onGoLogin y onGoRegister)
+    publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel? = null,
+    authViewModel: com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel? = null,
     onSearchClick: () -> Unit,
     onTopicClick: (String) -> Unit,
     onPublicationClick: (String) -> Unit,
     onCreatePublicationClick: () -> Unit,
     onProfileClick: () -> Unit,
 ) {
-    // --- DATOS DE EJEMPLO ---
-    // (En el futuro, esto vendrá de tu ViewModel)
-    val sampleThemes = remember {
-        listOf(
+    // Obtener datos reales de la base de datos
+    val publicacionesDb by publicacionViewModel?.allPublicaciones?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
+    val temasDb by publicacionViewModel?.allTemas?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
+    
+    // Convertir datos de BD a modelos de UI
+    val sampleThemes = remember(temasDb) {
+        temasDb.map { temaEntity ->
             Tema(
-                id = "1",
-                nombre = "Rutinas de Fuerza",
-                descripcion = "Gimnasio moderno con equipamiento de última generación y personal capacitado para rutinas de fuerza y musculación.",
-                ubicacion = "Las Condes, Av. Principal 123",
-                numeroPublicaciones = 156
-            ),
-            Tema(
-                id = "2",
-                nombre = "Nutrición y Suplementos",
-                descripcion = "Centro especializado en nutrición deportiva y suplementación para optimizar tu rendimiento físico.",
-                ubicacion = "Providencia, Av. Libertador 456",
-                numeroPublicaciones = 89
-            ),
-            Tema(
-                id = "3",
-                nombre = "Cardio y Resistencia",
-                descripcion = "Instalaciones equipadas con las mejores máquinas cardiovasculares y programas de entrenamiento de resistencia.",
-                ubicacion = "Ñuñoa, Av. Irarrázaval 789",
-                numeroPublicaciones = 67
+                id = temaEntity.id_tema.toString(),
+                nombre = temaEntity.nombre_tema,
+                descripcion = "Explora publicaciones sobre ${temaEntity.nombre_tema}",
+                ubicacion = "",
+                numeroPublicaciones = publicacionesDb.count { it.Tema_id_tema == temaEntity.id_tema }
             )
-        )
+        }
     }
-    val samplePosts = remember {
-        listOf(
-            Publicacion(id = "101", titulo = "¿Mejor rutina para pecho?", autor = "user123", contenido = "Llevo 3 meses y no veo progreso..."),
-            Publicacion(id = "102", titulo = "Opiniones Creatina Monohidratada", autor = "ana_fit", contenido = "¿Realmente funciona? ¿Qué marcas recomiendan?")
-        )
+    
+    val samplePosts = remember(publicacionesDb) {
+        publicacionesDb.take(10).map { pubEntity ->
+            Publicacion(
+                id = pubEntity.id_publicacion.toString(),
+                titulo = pubEntity.titulo,
+                autor = "user${pubEntity.Usuarios_id_usuario}",
+                contenido = pubEntity.descripcion
+            )
+        }
     }
-    // --- FIN DATOS DE EJEMPLO ---
 
 
     Scaffold(

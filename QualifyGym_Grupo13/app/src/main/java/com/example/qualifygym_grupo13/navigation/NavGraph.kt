@@ -40,9 +40,10 @@ import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 
 @Composable
-fun AppNavGraph(navController: NavHostController,
-                authViewModel: AuthViewModel // <-- 1.- NUEVO: recibimos el VM inyectado desde MainActivity
-
+fun AppNavGraph(
+    navController: NavHostController,
+    authViewModel: AuthViewModel,
+    publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel
 ) { // Recibe el controlador
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed) // Estado del drawer
     val scope = rememberCoroutineScope() // Necesario para abrir/cerrar drawer
@@ -150,18 +151,21 @@ fun AppNavGraph(navController: NavHostController,
 
                 composable(Route.Home.path) { // Destino Home
                     HomeScreen(
-                        // Aquí conectamos las acciones a tus rutas de navegación
-                        onSearchClick = goSearch, // Navega a la pantalla de búsqueda
-                        onTopicClick = { topicId -> openTopicDetail(topicId) }, // Navega al detalle del tema
-                        onPublicationClick = { postId -> openPost(postId) }, // Esto también (usa tu "openPost")
+                        publicacionViewModel = publicacionViewModel,
+                        authViewModel = authViewModel,
+                        onSearchClick = goSearch,
+                        onTopicClick = { topicId -> openTopicDetail(topicId) },
+                        onPublicationClick = { postId -> openPost(postId) },
                         onCreatePublicationClick = { navController.navigate(Route.CreatePublication.path) },
                         onProfileClick = { navController.navigate(Route.Profile.path) }
                     )
                 }
                 composable(Route.Search.path) { // Destino Búsqueda
                     SearchScreen(
+                        publicacionViewModel = publicacionViewModel,
                         onBack = { navController.popBackStack() },
-                        onTopicClick = { topicId -> openTopicDetail(topicId) }
+                        onTopicClick = { topicId -> openTopicDetail(topicId) },
+                        onPublicationClick = { postId -> openPost(postId) }
                     )
                 }
                 composable(Route.Login.path) { // Destino Login
@@ -213,13 +217,12 @@ fun AppNavGraph(navController: NavHostController,
                 }
                 composable(Route.CreatePublication.path) {
                     CreatePublicationScreen(
-                        onPublished = { title, topic, description, photoUris ->
-                            // Aquí puedes procesar los datos de la publicación
-                            // Por ahora solo navegamos de vuelta
+                        authViewModel = authViewModel,
+                        publicacionViewModel = publicacionViewModel,
+                        onPublished = {
                             navController.popBackStack()
                         },
                         onCancel = {
-                            // Regresa a la pantalla anterior sin guardar
                             navController.popBackStack()
                         }
                     )
