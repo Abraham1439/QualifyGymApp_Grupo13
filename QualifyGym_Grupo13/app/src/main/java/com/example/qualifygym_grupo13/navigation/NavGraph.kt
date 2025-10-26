@@ -209,6 +209,8 @@ fun AppNavGraph(
                     val postId = backStackEntry.arguments?.getString(Route.PublicationDetail.ARG_POST_ID).orEmpty()
                     PublicationDetailScreen(
                         postId = postId,
+                        publicacionViewModel = publicacionViewModel,
+                        authViewModel = authViewModel,
                         onBack = { navController.popBackStack() },
                         onWriteComment = { postId -> 
                             navController.navigate(Route.WriteCommentOnPost.create(postId))

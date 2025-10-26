@@ -148,6 +148,15 @@ class PublicacionViewModel(
         )
     }
 
+    // Obtener comentarios de una publicación específica
+    fun getComentariosByPublicacionId(publicacionId: Long) = 
+        comentarioRepository.getComentariosByPublicacionId(publicacionId)
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
     // Limpiar mensajes
     fun clearMessages() {
         _errorMessage.value = null

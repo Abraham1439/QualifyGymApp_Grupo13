@@ -11,14 +11,18 @@ import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.qualifygym_grupo13.data.local.database.AppDatabase
 import com.example.qualifygym_grupo13.data.model.Publicacion
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun PublicationsListScreen(
@@ -64,40 +68,49 @@ fun PublicationsListScreen(
 @Composable
 fun PublicationDetailScreen(
     postId: String,
+    publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel? = null,
+    authViewModel: com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel? = null,
     onBack: () -> Unit,
     onWriteComment: (String) -> Unit = {}
 ) {
-    // Datos de ejemplo basados en el postId
-    val publicacion = remember(postId) {
-        when {
-            postId.contains("101") || postId.contains("pecho") -> Publicacion(
-                id = "101",
-                titulo = "¿Mejor rutina para pecho?",
-                autor = "user123",
-                contenido = "Llevo 3 meses entrenando pecho y no veo progreso significativo. ¿Alguien puede recomendarme una rutina efectiva? He probado con press de banca, aperturas con mancuernas y fondos, pero siento que no estoy haciendo algo bien. ¿Cuántas series y repeticiones recomiendan? ¿Es mejor entrenar pecho dos veces por semana o solo una vez?"
-            )
-            postId.contains("102") || postId.contains("Creatina") -> Publicacion(
-                id = "102",
-                titulo = "Opiniones sobre Creatina Monohidratada",
-                autor = "ana_fit",
-                contenido = "¿Realmente funciona la creatina? ¿Qué marcas recomiendan? He leído opiniones muy divididas. Algunos dicen que es el mejor suplemento después de la proteína, otros dicen que no hace nada. Me gustaría saber sus experiencias personales. ¿Cuánto tiempo tardaron en ver resultados? ¿Tuvieron efectos secundarios?"
-            )
-            else -> Publicacion(
-                id = postId,
-                titulo = "Publicación de ejemplo",
-                autor = "usuario_demo",
-                contenido = "Este es el contenido de la publicación. Aquí se mostrará toda la información detallada que el usuario escribió cuando creó esta publicación. Puede ser un texto largo con múltiples párrafos explicando su duda o compartiendo su experiencia."
-            )
+    val context = LocalContext.current
+    val db = AppDatabase.getInstance(context)
+    val scope = rememberCoroutineScope()
+    
+    // Estados para la publicación y comentarios
+    var publicacion by remember { mutableStateOf<com.example.qualifygym_grupo13.data.local.publicacion.PublicacionEntity?>(null) }
+    var autorName by remember { mutableStateOf("Usuario") }
+    var isLoading by remember { mutableStateOf(true) }
+    
+    // Obtener comentarios de la base de datos
+    val comentariosDb = publicacionViewModel?.getComentariosByPublicacionId(postId.toLongOrNull() ?: 0)?.collectAsState()?.value ?: emptyList()
+    
+    // Cargar publicación y autor
+    LaunchedEffect(postId) {
+        isLoading = true
+        try {
+            val pubId = postId.toLongOrNull()
+            if (pubId != null) {
+                // Obtener publicación
+                publicacion = publicacionViewModel?.getPublicacionById(pubId)
+                
+                // Obtener nombre del autor
+                publicacion?.let { pub ->
+                    val user = db.userDao().getById(pub.Usuarios_id_usuario)
+                    autorName = user?.name ?: "Usuario"
+                }
+            }
+        } catch (e: Exception) {
+            // Error al cargar
+        } finally {
+            isLoading = false
         }
     }
     
-    // Comentarios de ejemplo
-    val comentarios = remember {
-        listOf(
-            "Gran pregunta! Yo recomendaría enfocarte en el press inclinado." to "carlos_trainer",
-            "La creatina es excelente, yo uso la de MyProtein." to "fitness_pro",
-            "Deberías consultar con un entrenador profesional." to "maria_sport"
-        )
+    // Función para formatear fecha
+    fun formatDate(timestamp: Long): String {
+        val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+        return sdf.format(Date(timestamp))
     }
     
     Scaffold(
@@ -128,83 +141,158 @@ fun PublicationDetailScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item { Spacer(modifier = Modifier.height(8.dp)) }
-            
-            // Título de la publicación
-            item {
+        if (isLoading) {
+            // Mostrar indicador de carga
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (publicacion == null) {
+            // Mostrar mensaje de error si no se encontró la publicación
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    text = publicacion.titulo,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = "Publicación no encontrada",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.error
                 )
             }
-            
-            // Autor
-            item {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                item { Spacer(modifier = Modifier.height(8.dp)) }
+                
+                // Título de la publicación
+                item {
                     Text(
-                        text = "por ${publicacion.autor}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            
-            // Contenido de la publicación
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Text(
-                        text = publicacion.contenido,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(16.dp),
+                        text = publicacion!!.titulo,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
+                
+                // Autor y fecha
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "por $autorName",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "• ${formatDate(publicacion!!.fecha)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                
+                // Contenido de la publicación
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Text(
+                            text = publicacion!!.descripcion,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+                
+                // Sección de comentarios
+                item {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    Text(
+                        text = "Comentarios (${comentariosDb.size})",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                
+                // Mostrar comentarios o mensaje si no hay
+                if (comentariosDb.isEmpty()) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Comment,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "No hay comentarios aún",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "Sé el primero en comentar",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    // Lista de comentarios
+                    items(comentariosDb) { comentarioEntity ->
+                        var comentarioAutorName by remember { mutableStateOf("Usuario") }
+                        
+                        LaunchedEffect(comentarioEntity.Usuarios_id_usuario) {
+                            val user = db.userDao().getById(comentarioEntity.Usuarios_id_usuario)
+                            comentarioAutorName = user?.name ?: "Usuario"
+                        }
+                        
+                        CommentCard(
+                            comentario = comentarioEntity.comentario,
+                            autor = comentarioAutorName,
+                            fecha = formatDate(comentarioEntity.fecha_registro)
+                        )
+                    }
+                }
+                
+                // Espacio al final para el FAB
+                item { Spacer(modifier = Modifier.height(80.dp)) }
             }
-            
-            // Sección de comentarios
-            item {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                Text(
-                    text = "Comentarios (${comentarios.size})",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            
-            // Lista de comentarios
-            items(comentarios.size) { index ->
-                val (comentario, autor) = comentarios[index]
-                CommentCard(
-                    comentario = comentario,
-                    autor = autor
-                )
-            }
-            
-            // Espacio al final para el FAB
-            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
     }
 }
@@ -212,7 +300,8 @@ fun PublicationDetailScreen(
 @Composable
 private fun CommentCard(
     comentario: String,
-    autor: String
+    autor: String,
+    fecha: String = ""
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -226,23 +315,37 @@ private fun CommentCard(
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
-            // Autor del comentario
+            // Autor del comentario y fecha
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    Icons.Default.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(16.dp)
-                )
-                Text(
-                    text = autor,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.secondary
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = autor,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+                
+                if (fecha.isNotEmpty()) {
+                    Text(
+                        text = fecha,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(8.dp))
