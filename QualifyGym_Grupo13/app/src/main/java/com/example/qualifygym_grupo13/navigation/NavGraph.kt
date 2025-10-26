@@ -26,6 +26,7 @@ import com.example.qualifygym_grupo13.ui.screen.PublicationDetailScreen
 import com.example.qualifygym_grupo13.ui.screen.CreatePublicationScreen
 import com.example.qualifygym_grupo13.ui.screen.ProfileScreen
 import com.example.qualifygym_grupo13.ui.screen.EditProfileScreen
+import com.example.qualifygym_grupo13.ui.screen.SearchScreen
 import com.example.qualifygym_grupo13.ui.screen.AdminDashboardScreen
 import com.example.qualifygym_grupo13.ui.screen.ManagePublicationsScreen
 import com.example.qualifygym_grupo13.ui.screen.ManageUsersScreen
@@ -64,6 +65,7 @@ fun AppNavGraph(navController: NavHostController,
     val goRegister: () -> Unit = { navController.navigate(Route.Register.path) } // Ir a Registro
     val goForgot: () -> Unit = { navController.navigate(Route.Forgot.path) } // Ir a recuperar
     val goProfile: () -> Unit = { navController.navigate(Route.Profile.path) } // Ir a Perfil/Configuración
+    val goSearch: () -> Unit = { navController.navigate(Route.Search.path) } // Ir a Búsqueda
     val openTopicDetail: (String) -> Unit = { topicId -> navController.navigate(Route.TopicDetail.create(topicId)) }
     val openTopic: (String) -> Unit = { topicId -> navController.navigate(Route.PublicationsList.create(topicId)) }
     val openPost: (String) -> Unit = { postId -> navController.navigate(Route.PublicationDetail.create(postId)) }
@@ -145,11 +147,17 @@ fun AppNavGraph(navController: NavHostController,
                 composable(Route.Home.path) { // Destino Home
                     HomeScreen(
                         // Aquí conectamos las acciones a tus rutas de navegación
-                        onSearchClick = { /* TODO: navController.navigate("tu_ruta_de_busqueda") */ },
+                        onSearchClick = goSearch, // Navega a la pantalla de búsqueda
                         onTopicClick = { topicId -> openTopicDetail(topicId) }, // Navega al detalle del tema
                         onPublicationClick = { postId -> openPost(postId) }, // Esto también (usa tu "openPost")
                         onCreatePublicationClick = { navController.navigate(Route.CreatePublication.path) },
                         onProfileClick = { navController.navigate(Route.Profile.path) }
+                    )
+                }
+                composable(Route.Search.path) { // Destino Búsqueda
+                    SearchScreen(
+                        onBack = { navController.popBackStack() },
+                        onTopicClick = { topicId -> openTopicDetail(topicId) }
                     )
                 }
                 composable(Route.Login.path) { // Destino Login

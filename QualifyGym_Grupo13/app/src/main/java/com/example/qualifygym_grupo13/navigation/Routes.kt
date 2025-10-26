@@ -32,6 +32,9 @@ sealed class Route(val path: String) { // Cada objeto representa una pantalla
     // Perfil
     data object Profile : Route("profile")
     data object EditProfile : Route("editProfile")
+    
+    // Búsqueda
+    data object Search : Route("search")
 
     // Admin
     data object AdminDashboard : Route("adminDashboard")
