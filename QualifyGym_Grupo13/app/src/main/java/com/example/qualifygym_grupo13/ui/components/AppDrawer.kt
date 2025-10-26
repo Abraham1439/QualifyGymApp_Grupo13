@@ -121,7 +121,7 @@ fun AppDrawer(
                 icon = { Icon(logoutItem.icon, contentDescription = logoutItem.label) },
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 colors = NavigationDrawerItemDefaults.colors(
-                    unselectedContainerColor = MaterialTheme.colorScheme.errorContainer,
+                    unselectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     unselectedTextColor = MaterialTheme.colorScheme.onErrorContainer,
                     unselectedIconColor = MaterialTheme.colorScheme.onErrorContainer
                 )
