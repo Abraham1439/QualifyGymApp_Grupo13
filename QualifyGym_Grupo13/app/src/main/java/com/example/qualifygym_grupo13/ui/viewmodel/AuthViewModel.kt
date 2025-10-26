@@ -216,6 +216,27 @@ class AuthViewModel(
         }
     }
 
+    // Cambiar contraseña del usuario
+    suspend fun changeUserPassword(currentPassword: String, newPassword: String): Result<UserEntity> {
+        val user = _currentUser.value
+        return if (user != null) {
+            val result = repository.changePassword(
+                userId = user.id,
+                currentPassword = currentPassword,
+                newPassword = newPassword
+            )
+            
+            // Si el cambio fue exitoso, actualizar el usuario actual en el ViewModel
+            if (result.isSuccess) {
+                _currentUser.value = result.getOrNull()
+            }
+            
+            result
+        } else {
+            Result.failure(IllegalStateException("No hay usuario en sesión"))
+        }
+    }
+
     fun clearLoginData() {
         _login.update {
             LoginUiState() // Esto restablece todos los valores a los defaults

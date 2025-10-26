@@ -63,4 +63,29 @@ class UserRepository(
         return Result.success(updatedUser)
     }
 
+    // Cambiar contraseña: verifica que la contraseña actual sea correcta
+    suspend fun changePassword(userId: Long, currentPassword: String, newPassword: String): Result<UserEntity> {
+        // Obtener el usuario actual
+        val currentUser = userDao.getById(userId)
+        if (currentUser == null) {
+            return Result.failure(IllegalArgumentException("Usuario no encontrado"))
+        }
+        
+        // Verificar que la contraseña actual coincida
+        if (currentUser.password != currentPassword) {
+            return Result.failure(IllegalArgumentException("La contraseña actual no coincide"))
+        }
+        
+        // Verificar que la nueva contraseña sea diferente
+        if (currentPassword == newPassword) {
+            return Result.failure(IllegalArgumentException("La nueva contraseña debe ser diferente a la actual"))
+        }
+        
+        // Actualizar la contraseña
+        val updatedUser = currentUser.copy(password = newPassword)
+        userDao.update(updatedUser)
+        
+        return Result.success(updatedUser)
+    }
+
 }

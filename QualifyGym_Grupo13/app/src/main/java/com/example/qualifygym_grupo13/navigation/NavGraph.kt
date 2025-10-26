@@ -415,7 +415,9 @@ fun AppNavGraph(navController: NavHostController,
                 }
                 composable(Route.ChangePassword.path) {
                     ChangePasswordScreen(
-                        onPasswordChanged = { navController.popBackStack() }
+                        authViewModel = authViewModel,
+                        onPasswordChanged = { navController.popBackStack() },
+                        onBack = { navController.popBackStack() }
                     )
                 }
             }
