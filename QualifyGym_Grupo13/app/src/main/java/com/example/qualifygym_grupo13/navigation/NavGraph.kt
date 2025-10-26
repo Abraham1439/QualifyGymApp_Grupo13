@@ -7,6 +7,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -91,6 +92,9 @@ fun AppNavGraph(navController: NavHostController,
         gesturesEnabled = !routesWithoutBars.contains(currentRoute),
 
         drawerContent = { // Contenido del drawer (menú)
+            // Obtener usuario actual del ViewModel
+            val currentUser by authViewModel.currentUser.collectAsState()
+            
             AppDrawer( // Nuestro componente Drawer
                 currentRoute = currentRoute, // Ruta actual
                 items = defaultDrawerItems( // Lista estándar
@@ -107,9 +111,9 @@ fun AppNavGraph(navController: NavHostController,
                         logout() // Cierra sesión
                     }
                 ),
-                userName = "Usuario Demo", // TODO: Obtener del ViewModel
-                userEmail = "usuario@demo.com", // TODO: Obtener del ViewModel
-                userPhotoUri = null // TODO: Obtener del ViewModel
+                userName = currentUser?.name ?: "Usuario Demo",
+                userEmail = currentUser?.email ?: "usuario@demo.com",
+                userPhotoUri = null
             )
         }
     ) {
@@ -221,9 +225,10 @@ fun AppNavGraph(navController: NavHostController,
                     )
                 }
                 composable(Route.Profile.path) {
-                    // Idealmente, el nombre y email vendrían de tu AuthViewModel o un nuevo ProfileViewModel
-                    val userName = "Usuario Demo" // authViewModel.currentUser.name
-                    val userEmail = "usuario@demo.com" // authViewModel.currentUser.email
+                    // Obtener el usuario actual del ViewModel
+                    val currentUser by authViewModel.currentUser.collectAsState()
+                    val userName = currentUser?.name ?: "Usuario Demo"
+                    val userEmail = currentUser?.email ?: "usuario@demo.com"
 
                     ProfileScreen(
                         name = userName,
@@ -252,11 +257,13 @@ fun AppNavGraph(navController: NavHostController,
                     )
                 }
                 composable(Route.EditProfile.path) {
-                    // Idealmente estos valores vendrían del ViewModel/base de datos
+                    // Obtener datos del usuario actual
+                    val currentUser by authViewModel.currentUser.collectAsState()
+                    
                     EditProfileScreen(
-                        currentName = "Usuario Demo",
-                        currentPhone = "",
-                        currentEmail = "usuario@demo.com",
+                        currentName = currentUser?.name ?: "",
+                        currentPhone = currentUser?.phone ?: "",
+                        currentEmail = currentUser?.email ?: "",
                         currentGender = "",
                         currentPhotoUri = null,
                         onSaved = { name, phone, email, gender, photoUri ->

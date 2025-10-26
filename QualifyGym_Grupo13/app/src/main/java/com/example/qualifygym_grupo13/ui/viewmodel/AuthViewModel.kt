@@ -11,6 +11,7 @@ import com.example.qualifygym_grupo13.domain.validation.*             // Importa
 
 // 1.- 🔁 NUEVO: importamos el repositorio real que habla con Room/SQLite
 import com.example.qualifygym_grupo13.data.repository.UserRepository
+import com.example.qualifygym_grupo13.data.local.user.UserEntity
 
 // ----------------- ESTADOS DE UI (observable con StateFlow) -----------------
 
@@ -49,7 +50,7 @@ data class RegisterUiState(                                // Estado de la panta
 //2.- Eliminamos la estructura de DemoUser
 
 class AuthViewModel(
-    // ✅ NUEVO: 4.- inyectamos el repositorio real que usa Room/SQLite
+    //NUEVO: 4.- inyectamos el repositorio real que usa Room/SQLite
     private val repository: UserRepository
 ) : ViewModel() {                         // ViewModel que maneja Login/Registro
 
@@ -62,6 +63,10 @@ class AuthViewModel(
 
     private val _register = MutableStateFlow(RegisterUiState()) // Estado interno (Registro)
     val register: StateFlow<RegisterUiState> = _register        // Exposición inmutable
+    
+    // Estado del usuario actual (después de login exitoso)
+    private val _currentUser = MutableStateFlow<UserEntity?>(null)
+    val currentUser: StateFlow<UserEntity?> = _currentUser
 
     // ----------------- LOGIN: handlers y envío -----------------
 
@@ -90,12 +95,14 @@ class AuthViewModel(
             _login.update { it.copy(isSubmitting = true, errorMsg = null, success = false) } // Seteamos loading
             delay(500)                                      // Simulamos tiempo de verificación
 
-            //6.- Se cambia lo anterior por esto ✅ NUEVO: consulta real a la BD vía repositorio
+            //6.- Se cambia lo anterior por esto  NUEVO: consulta real a la BD vía repositorio
             val result = repository.login(s.email.trim(), s.pass)
 
             // Interpreta el resultado y actualiza estado
             _login.update {
                 if (result.isSuccess) {
+                    // Guardar el usuario actual cuando el login sea exitoso
+                    _currentUser.value = result.getOrNull()
                     it.copy(isSubmitting = false, success = true, errorMsg = null) // OK: éxito
                 } else {
                     it.copy(isSubmitting = false, success = false,
@@ -167,7 +174,7 @@ class AuthViewModel(
             _register.update { it.copy(isSubmitting = true, errorMsg = null, success = false) } // Loading
             delay(700)                                      // Simulamos IO
 
-            // 7.- Se cambia esto por lo anterior✅ NUEVO: inserta en BD (con teléfono) vía repositorio
+            // 7.- Se cambia esto por lo anterior NUEVO: inserta en BD (con teléfono) vía repositorio
             val result = repository.register(
                 name = s.name.trim(),
                 email = s.email.trim(),
@@ -191,11 +198,13 @@ class AuthViewModel(
         _login.update {
             LoginUiState() // Esto restablece todos los valores a los defaults
         }
+        _currentUser.value = null // Limpiar usuario actual al cerrar sesión
     }
 
     //limpiar el registro al logout
     fun clearAllAuthData() {
         _login.update { LoginUiState() }
         _register.update { RegisterUiState() }
+        _currentUser.value = null // Limpiar usuario actual
     }
 }
