@@ -266,9 +266,9 @@ fun AppNavGraph(navController: NavHostController,
                         currentEmail = currentUser?.email ?: "",
                         currentGender = "",
                         currentPhotoUri = null,
+                        authViewModel = authViewModel,
                         onSaved = { name, phone, email, gender, photoUri ->
-                            // TODO: Guardar los cambios en la base de datos/ViewModel
-                            // Por ahora solo regresamos a la pantalla anterior
+                            // La lógica de guardar ahora se maneja dentro de EditProfileScreen
                             navController.popBackStack()
                         },
                         onBack = { navController.popBackStack() }

@@ -194,6 +194,28 @@ class AuthViewModel(
         }
     }
 
+    // Actualizar perfil del usuario
+    suspend fun updateUserProfile(name: String, email: String, phone: String): Result<UserEntity> {
+        val user = _currentUser.value
+        return if (user != null) {
+            val result = repository.updateProfile(
+                userId = user.id,
+                newName = name.trim(),
+                newEmail = email.trim(),
+                newPhone = phone.trim()
+            )
+            
+            // Si la actualización fue exitosa, actualizar el usuario actual en el ViewModel
+            if (result.isSuccess) {
+                _currentUser.value = result.getOrNull()
+            }
+            
+            result
+        } else {
+            Result.failure(IllegalStateException("No hay usuario en sesión"))
+        }
+    }
+
     fun clearLoginData() {
         _login.update {
             LoginUiState() // Esto restablece todos los valores a los defaults

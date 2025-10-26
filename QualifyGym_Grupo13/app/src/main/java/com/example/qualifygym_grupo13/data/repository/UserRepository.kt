@@ -36,6 +36,31 @@ class UserRepository(
         return Result.success(id)                                    // Devuelve ID generado
     }
 
-
+    // Actualizar perfil: valida que el nuevo email no esté en uso por otro usuario
+    suspend fun updateProfile(userId: Long, newName: String, newEmail: String, newPhone: String): Result<UserEntity> {
+        // Obtener el usuario actual
+        val currentUser = userDao.getById(userId)
+        if (currentUser == null) {
+            return Result.failure(IllegalArgumentException("Usuario no encontrado"))
+        }
+        
+        // Si el email cambió, verificar que no esté en uso por otro usuario
+        if (newEmail != currentUser.email) {
+            val emailExists = userDao.getByEmail(newEmail)
+            if (emailExists != null && emailExists.id != userId) {
+                return Result.failure(IllegalStateException("El correo ya está siendo utilizado por otro usuario"))
+            }
+        }
+        
+        // Actualizar el usuario
+        val updatedUser = currentUser.copy(
+            name = newName,
+            email = newEmail,
+            phone = newPhone
+        )
+        userDao.update(updatedUser)
+        
+        return Result.success(updatedUser)
+    }
 
 }

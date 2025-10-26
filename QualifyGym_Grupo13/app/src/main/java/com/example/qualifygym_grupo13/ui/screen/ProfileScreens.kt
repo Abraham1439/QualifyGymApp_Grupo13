@@ -30,8 +30,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.lifecycle.viewModelScope
 import coil.compose.rememberAsyncImagePainter
 import com.example.qualifygym_grupo13.data.model.Publicacion
+import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel
+import kotlinx.coroutines.launch
 import java.io.File
 
 // Pega este código donde estaba tu antiguo ProfileScreen
@@ -202,10 +205,12 @@ fun EditProfileScreen(
     currentEmail: String = "",
     currentGender: String = "",
     currentPhotoUri: Uri? = null,
+    authViewModel: AuthViewModel? = null,
     onSaved: (name: String, phone: String, email: String, gender: String, photoUri: Uri?) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     
     // Estados para los campos del formulario
     var name by remember { mutableStateOf(currentName) }
@@ -213,6 +218,12 @@ fun EditProfileScreen(
     var email by remember { mutableStateOf(currentEmail) }
     var gender by remember { mutableStateOf(currentGender) }
     var photoUri by remember { mutableStateOf<Uri?>(currentPhotoUri) }
+    
+    // Estados para manejo de errores y carga
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var successMessage by remember { mutableStateOf<String?>(null) }
     
     // Estado para mostrar el menú de género
     var genderMenuExpanded by remember { mutableStateOf(false) }
@@ -381,17 +392,65 @@ fun EditProfileScreen(
             // Campo: Correo electrónico
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = { 
+                    email = it
+                    emailError = null  // Limpiar error al cambiar el texto
+                },
                 label = { Text("Correo electrónico") },
                 leadingIcon = {
                     Icon(Icons.Default.Email, contentDescription = null)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                isError = emailError != null,
+                supportingText = {
+                    if (emailError != null) {
+                        Text(
+                            text = emailError!!,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
             )
             
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Mostrar mensaje de error si existe
+            if (errorMessage != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = errorMessage!!,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+            
+            // Mostrar mensaje de éxito si existe
+            if (successMessage != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF4CAF50).copy(alpha = 0.2f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = successMessage!!,
+                        color = Color(0xFF1B5E20),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+            
             // Botones de acción
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -400,7 +459,8 @@ fun EditProfileScreen(
                 // Botón Cancelar
                 OutlinedButton(
                     onClick = onBack,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    enabled = !isLoading
                 ) {
                     Text("Cancelar")
                 }
@@ -408,11 +468,51 @@ fun EditProfileScreen(
                 // Botón Guardar Cambios
                 Button(
                     onClick = {
-                        onSaved(name, phone, email, gender, photoUri)
+                        // Limpiar mensajes anteriores
+                        errorMessage = null
+                        successMessage = null
+                        emailError = null
+                        
+                        // Validar que los campos no estén vacíos
+                        if (name.isBlank() || email.isBlank() || phone.isBlank()) {
+                            errorMessage = "Todos los campos son obligatorios"
+                            return@Button
+                        }
+                        
+                        // Actualizar perfil a través del ViewModel
+                        scope.launch {
+                            isLoading = true
+                            
+                            val result = authViewModel?.updateUserProfile(name, email, phone)
+                            
+                            isLoading = false
+                            
+                            if (result?.isSuccess == true) {
+                                successMessage = "Perfil actualizado correctamente"
+                                // Esperar un momento para que el usuario vea el mensaje
+                                kotlinx.coroutines.delay(1500)
+                                onSaved(name, phone, email, gender, photoUri)
+                            } else {
+                                val errorMsg = result?.exceptionOrNull()?.message ?: "Error al actualizar el perfil"
+                                if (errorMsg.contains("correo ya está siendo utilizado")) {
+                                    emailError = errorMsg
+                                }
+                                errorMessage = errorMsg
+                            }
+                        }
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    enabled = !isLoading
                 ) {
-                    Text("Guardar Cambios")
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Guardar Cambios")
+                    }
                 }
             }
             
