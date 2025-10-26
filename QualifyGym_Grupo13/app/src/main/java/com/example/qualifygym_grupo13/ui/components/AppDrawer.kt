@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons // Íconos Material
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Home // Ícono Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search // Ícono Buscar
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.* // Material3
 import androidx.compose.runtime.Composable // Marcador composable
@@ -136,10 +137,12 @@ fun AppDrawer(
 @Composable
 fun defaultDrawerItems(
     onHome: () -> Unit,        // Acción Home
+    onSearch: () -> Unit,      // Acción Buscar
     onSettings: () -> Unit,    // Acción Configuración
     onLogout: () -> Unit       // Acción Cerrar Sesión
 ): List<DrawerItem> = listOf(
     DrawerItem("Inicio", Icons.Filled.Home, onHome),                         // Ítem Home
+    DrawerItem("Buscar", Icons.Filled.Search, onSearch),                     // Ítem Buscar
     DrawerItem("Configuración", Icons.Filled.Settings, onSettings),          // Ítem Configuración
     DrawerItem("Cerrar Sesión", Icons.AutoMirrored.Filled.ExitToApp, onLogout) // Ítem Cerrar Sesión
 )

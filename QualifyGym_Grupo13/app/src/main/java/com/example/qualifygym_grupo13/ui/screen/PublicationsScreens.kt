@@ -33,15 +33,34 @@ import java.util.Locale
 @Composable
 fun PublicationsListScreen(
     topicId: String,
+    publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel? = null,
     onOpenPost: (String) -> Unit,
     onCreateNew: () -> Unit
 ) {
-    val sample = remember(topicId) {
-        // Datos de demo temporales
-        List(8) { idx ->
-            val id = "$topicId-post-$idx"
-            id to "Título $idx del tema $topicId"
+    val context = LocalContext.current
+    val db = AppDatabase.getInstance(context)
+    
+    // Obtener publicaciones del tema desde la base de datos
+    val publicacionesDb by publicacionViewModel?.allPublicaciones?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
+    
+    // Filtrar publicaciones por tema y que no estén ocultas
+    val publicacionesFiltradas = publicacionesDb.filter { 
+        it.Tema_id_tema == topicId.toLongOrNull() && !it.oculta 
+    }
+    
+    // Cargar nombres de autores
+    var autoresMap by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
+    
+    LaunchedEffect(publicacionesFiltradas) {
+        val userIds = publicacionesFiltradas.map { it.Usuarios_id_usuario }.distinct()
+        val namesMap = mutableMapOf<Long, String>()
+        
+        userIds.forEach { userId ->
+            val user = db.userDao().getById(userId)
+            namesMap[userId] = user?.name ?: "Usuario"
         }
+        
+        autoresMap = namesMap
     }
 
     Scaffold(
@@ -51,18 +70,65 @@ fun PublicationsListScreen(
             }
         }
     ) { inner ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(inner),
-            contentPadding = PaddingValues(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(sample) { (postId, title) ->
-                ElevatedCard(onClick = { onOpenPost(postId) }, modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                        Text("Autor demo", style = MaterialTheme.typography.bodySmall)
+        if (publicacionesFiltradas.isEmpty()) {
+            // Mostrar mensaje cuando no hay publicaciones
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(inner),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "No hay publicaciones en este tema",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Sé el primero en publicar",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(inner),
+                contentPadding = PaddingValues(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(publicacionesFiltradas) { publicacion ->
+                    val autorNombre = autoresMap[publicacion.Usuarios_id_usuario] ?: "Usuario"
+                    
+                    ElevatedCard(
+                        onClick = { onOpenPost(publicacion.id_publicacion.toString()) }, 
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text(
+                                text = publicacion.titulo, 
+                                style = MaterialTheme.typography.titleMedium, 
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "por $autorNombre", 
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = publicacion.descripcion,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 2,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             }

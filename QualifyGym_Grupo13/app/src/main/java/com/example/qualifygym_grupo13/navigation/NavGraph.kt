@@ -108,6 +108,10 @@ fun AppNavGraph(
                         scope.launch { drawerState.close() } // Cierra drawer
                         goHome() // Navega a Home
                     },
+                    onSearch = {
+                        scope.launch { drawerState.close() } // Cierra drawer
+                        goSearch() // Navega a Búsqueda
+                    },
                     onSettings = {
                         scope.launch { drawerState.close() } // Cierra drawer
                         goProfile() // Navega a Perfil/Configuración
@@ -163,7 +167,7 @@ fun AppNavGraph(
                         publicacionViewModel = publicacionViewModel,
                         authViewModel = authViewModel,
                         onSearchClick = goSearch,
-                        onTopicClick = { topicId -> openTopicDetail(topicId) },
+                        onTopicClick = { topicId -> openTopic(topicId) }, // Cambiado a openTopic para mostrar publicaciones
                         onPublicationClick = { postId -> openPost(postId) },
                         onCreatePublicationClick = { navController.navigate(Route.CreatePublication.path) },
                         onProfileClick = { navController.navigate(Route.Profile.path) }
@@ -173,7 +177,7 @@ fun AppNavGraph(
                     SearchScreen(
                         publicacionViewModel = publicacionViewModel,
                         onBack = { navController.popBackStack() },
-                        onTopicClick = { topicId -> openTopicDetail(topicId) },
+                        onTopicClick = { topicId -> openTopic(topicId) }, // Cambiado a openTopic para mostrar publicaciones
                         onPublicationClick = { postId -> openPost(postId) }
                     )
                 }
@@ -210,6 +214,7 @@ fun AppNavGraph(
                     val topicId = backStackEntry.arguments?.getString(Route.PublicationsList.ARG_TOPIC_ID).orEmpty()
                     PublicationsListScreen(
                         topicId = topicId,
+                        publicacionViewModel = publicacionViewModel,
                         onOpenPost = openPost,
                         onCreateNew = { navController.navigate(Route.CreatePublication.path) }
                     )

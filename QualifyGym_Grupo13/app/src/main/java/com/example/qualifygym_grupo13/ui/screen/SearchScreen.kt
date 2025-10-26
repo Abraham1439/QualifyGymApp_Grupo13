@@ -32,17 +32,18 @@ fun SearchScreen(
     val temasDb by publicacionViewModel?.allTemas?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
     val publicacionesDb by publicacionViewModel?.allPublicaciones?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
     
-    // Convertir temas de BD a modelos UI
-    val allThemes = remember(temasDb, publicacionesDb) {
+    // Convertir temas de BD a modelos UI (sin remember para que se actualice siempre)
+    val allThemes = if (temasDb.isNotEmpty()) {
         temasDb.map { temaEntity ->
             Tema(
                 id = temaEntity.id_tema.toString(),
                 nombre = temaEntity.nombre_tema,
                 descripcion = "Explora publicaciones sobre ${temaEntity.nombre_tema}",
                 ubicacion = "",
-                numeroComentarios = publicacionesDb.count { it.Tema_id_tema == temaEntity.id_tema }
+                numeroComentarios = publicacionesDb.count { it.Tema_id_tema == temaEntity.id_tema && !it.oculta }
             )
-        }.ifEmpty {
+        }
+    } else {
             // Datos de ejemplo solo si la BD está vacía
             listOf(
             Tema(
@@ -115,19 +116,17 @@ fun SearchScreen(
                 ubicacion = "Las Condes, Av. El Golf 456",
                 numeroComentarios = 38
             )
-        )}
+        )
     }
     
-    // Filtrar temas basado en la búsqueda
-    val filteredThemes = remember(searchQuery) {
-        if (searchQuery.isBlank()) {
-            allThemes
-        } else {
-            allThemes.filter { tema ->
-                tema.nombre.contains(searchQuery, ignoreCase = true) ||
-                tema.descripcion.contains(searchQuery, ignoreCase = true) ||
-                tema.ubicacion.contains(searchQuery, ignoreCase = true)
-            }
+    // Filtrar temas basado en la búsqueda (sin remember para que se actualice con allThemes)
+    val filteredThemes = if (searchQuery.isBlank()) {
+        allThemes
+    } else {
+        allThemes.filter { tema ->
+            tema.nombre.contains(searchQuery, ignoreCase = true) ||
+            tema.descripcion.contains(searchQuery, ignoreCase = true) ||
+            tema.ubicacion.contains(searchQuery, ignoreCase = true)
         }
     }
     
