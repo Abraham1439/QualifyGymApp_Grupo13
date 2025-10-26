@@ -1,6 +1,8 @@
 package com.example.qualifygym_grupo13.ui.screen
 
+import android.Manifest
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -29,6 +31,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewModelScope
 import coil.compose.rememberAsyncImagePainter
@@ -232,6 +235,19 @@ fun EditProfileScreen(
     // Estado para el diálogo de selección de foto
     var showPhotoDialog by remember { mutableStateOf(false) }
     
+    // Función para crear el archivo temporal para la cámara
+    // IMPORTANTE: Esta función debe definirse ANTES de los launchers que la usan
+    fun createImageFile(): Uri {
+        val imageFile = File(context.cacheDir, "images")
+        imageFile.mkdirs()
+        val file = File(imageFile, "profile_${System.currentTimeMillis()}.jpg")
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
+    }
+    
     // Launcher para seleccionar de galería
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -249,16 +265,19 @@ fun EditProfileScreen(
         }
     }
     
-    // Función para crear el archivo temporal para la cámara
-    fun createImageFile(): Uri {
-        val imageFile = File(context.cacheDir, "images")
-        imageFile.mkdirs()
-        val file = File(imageFile, "profile_${System.currentTimeMillis()}.jpg")
-        return FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            file
-        )
+    // Launcher para solicitar permisos de cámara
+    val requestCameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            // Si se otorgó el permiso, proceder a tomar la foto
+            val uri = createImageFile()
+            cameraUri.value = uri
+            cameraLauncher.launch(uri)
+        } else {
+            // Si se denegó el permiso, mostrar mensaje
+            Toast.makeText(context, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
+        }
     }
     
     Scaffold(
@@ -327,9 +346,21 @@ fun EditProfileScreen(
                 // Botón Cámara
                 OutlinedButton(
                     onClick = {
-                        val uri = createImageFile()
-                        cameraUri.value = uri
-                        cameraLauncher.launch(uri)
+                        // Verificar si ya tiene el permiso de cámara
+                        val cameraPermission = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.CAMERA
+                        )
+                        
+                        if (cameraPermission == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            // Si ya tiene el permiso, abrir la cámara directamente
+                            val uri = createImageFile()
+                            cameraUri.value = uri
+                            cameraLauncher.launch(uri)
+                        } else {
+                            // Si no tiene el permiso, solicitarlo
+                            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
                     },
                     modifier = Modifier.weight(1f)
                 ) {
