@@ -28,6 +28,10 @@ sealed class Route(val path: String) { // Cada objeto representa una pantalla
         fun create(topicId: String) = "writeComment/$topicId"
         const val ARG_TOPIC_ID = "topicId"
     }
+    data object WriteCommentOnPost : Route("writeCommentOnPost/{postId}") { // Comentar en publicación
+        fun create(postId: String) = "writeCommentOnPost/$postId"
+        const val ARG_POST_ID = "postId"
+    }
 
     // Perfil
     data object Profile : Route("profile")

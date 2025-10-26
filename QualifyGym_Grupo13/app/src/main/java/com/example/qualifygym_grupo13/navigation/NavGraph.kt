@@ -201,7 +201,10 @@ fun AppNavGraph(navController: NavHostController,
                     val postId = backStackEntry.arguments?.getString(Route.PublicationDetail.ARG_POST_ID).orEmpty()
                     PublicationDetailScreen(
                         postId = postId,
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        onWriteComment = { postId -> 
+                            navController.navigate(Route.WriteCommentOnPost.create(postId))
+                        }
                     )
                 }
                 composable(Route.CreatePublication.path) {
@@ -351,6 +354,42 @@ fun AppNavGraph(navController: NavHostController,
                         onBackClick = { navController.popBackStack() },
                         onPublishClick = { title, comment, photos ->
                             // TODO: Implementar lógica para publicar comentario
+                            navController.popBackStack()
+                        }
+                    )
+                }
+                composable(Route.WriteCommentOnPost.path) { backStackEntry ->
+                    val postId = backStackEntry.arguments?.getString(Route.WriteCommentOnPost.ARG_POST_ID) ?: ""
+                    // Datos de ejemplo basados en el postId
+                    val tema = when {
+                        postId.contains("101") || postId.contains("pecho") -> com.example.qualifygym_grupo13.data.model.Tema(
+                            id = "1",
+                            nombre = "¿Mejor rutina para pecho?",
+                            descripcion = "Llevo 3 meses entrenando pecho y no veo progreso...",
+                            ubicacion = "Rutinas de Fuerza",
+                            numeroPublicaciones = 156
+                        )
+                        postId.contains("102") || postId.contains("Creatina") -> com.example.qualifygym_grupo13.data.model.Tema(
+                            id = "2",
+                            nombre = "Opiniones sobre Creatina Monohidratada",
+                            descripcion = "¿Realmente funciona la creatina?",
+                            ubicacion = "Nutrición y Suplementos",
+                            numeroPublicaciones = 89
+                        )
+                        else -> com.example.qualifygym_grupo13.data.model.Tema(
+                            id = postId,
+                            nombre = "Publicación",
+                            descripcion = "Comentando en publicación",
+                            ubicacion = "Foro",
+                            numeroPublicaciones = 0
+                        )
+                    }
+                    
+                    WriteCommentScreen(
+                        tema = tema,
+                        onBackClick = { navController.popBackStack() },
+                        onPublishClick = { title, comment, photos ->
+                            // TODO: Implementar lógica para publicar comentario en la publicación
                             navController.popBackStack()
                         }
                     )
