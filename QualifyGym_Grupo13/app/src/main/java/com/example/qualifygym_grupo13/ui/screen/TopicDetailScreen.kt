@@ -4,13 +4,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Comment
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.qualifygym_grupo13.data.model.Publicacion
 import com.example.qualifygym_grupo13.data.model.Tema
@@ -31,7 +33,7 @@ fun TopicDetailScreen(
                 title = { Text(tema.nombre) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -42,16 +44,12 @@ fun TopicDetailScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            ExtendedFloatingActionButton(
                 onClick = onCreatePublicationClick,
+                icon = { Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = null) },
+                text = { Text("Escribir Comentario") },
                 containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Text(
-                    text = "Escribir Comentario",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            }
+            )
         }
     ) { paddingValues ->
         LazyColumn(
@@ -97,7 +95,7 @@ fun TopicDetailScreen(
                         // Número de publicaciones
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                Icons.Default.Article,
+                                Icons.AutoMirrored.Filled.Article,
                                 contentDescription = "Publicaciones",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
