@@ -85,7 +85,10 @@ fun PublicationDetailScreen(
     // Obtener comentarios de la base de datos
     val comentariosDb = publicacionViewModel?.getComentariosByPublicacionId(postId.toLongOrNull() ?: 0)?.collectAsState()?.value ?: emptyList()
     
-    // Cargar publicación y autor
+    // Mapa para almacenar nombres de usuarios (key: userId, value: userName)
+    var userNamesMap by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
+    
+    // Cargar publicación, autor y nombres de usuarios de los comentarios
     LaunchedEffect(postId) {
         isLoading = true
         try {
@@ -94,7 +97,7 @@ fun PublicationDetailScreen(
                 // Obtener publicación
                 publicacion = publicacionViewModel?.getPublicacionById(pubId)
                 
-                // Obtener nombre del autor
+                // Obtener nombre del autor de la publicación
                 publicacion?.let { pub ->
                     val user = db.userDao().getById(pub.Usuarios_id_usuario)
                     autorName = user?.name ?: "Usuario"
@@ -104,6 +107,21 @@ fun PublicationDetailScreen(
             // Error al cargar
         } finally {
             isLoading = false
+        }
+    }
+    
+    // Cargar nombres de todos los usuarios que comentaron (solo cuando cambian los comentarios)
+    LaunchedEffect(comentariosDb) {
+        if (comentariosDb.isNotEmpty()) {
+            val userIds = comentariosDb.map { it.Usuarios_id_usuario }.distinct()
+            val namesMap = mutableMapOf<Long, String>()
+            
+            userIds.forEach { userId ->
+                val user = db.userDao().getById(userId)
+                namesMap[userId] = user?.name ?: "Usuario"
+            }
+            
+            userNamesMap = namesMap
         }
     }
     
@@ -275,12 +293,8 @@ fun PublicationDetailScreen(
                 } else {
                     // Lista de comentarios
                     items(comentariosDb) { comentarioEntity ->
-                        var comentarioAutorName by remember { mutableStateOf("Usuario") }
-                        
-                        LaunchedEffect(comentarioEntity.Usuarios_id_usuario) {
-                            val user = db.userDao().getById(comentarioEntity.Usuarios_id_usuario)
-                            comentarioAutorName = user?.name ?: "Usuario"
-                        }
+                        // Obtener el nombre del autor del mapa pre-cargado
+                        val comentarioAutorName = userNamesMap[comentarioEntity.Usuarios_id_usuario] ?: "Usuario"
                         
                         CommentCard(
                             comentario = comentarioEntity.comentario,

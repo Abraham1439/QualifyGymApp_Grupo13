@@ -1,5 +1,6 @@
 package com.example.qualifygym_grupo13.navigation
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
@@ -9,8 +10,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -376,23 +381,31 @@ fun AppNavGraph(
                 }
                 composable(Route.WriteCommentOnPost.path) { backStackEntry ->
                     val postId = backStackEntry.arguments?.getString(Route.WriteCommentOnPost.ARG_POST_ID) ?: ""
-                    // Datos de ejemplo basados en el postId
-                    val tema = when {
-                        postId.contains("101") || postId.contains("pecho") -> com.example.qualifygym_grupo13.data.model.Tema(
-                            id = "1",
-                            nombre = "¿Mejor rutina para pecho?",
-                            descripcion = "Llevo 3 meses entrenando pecho y no veo progreso...",
-                            ubicacion = "Rutinas de Fuerza",
-                            numeroComentarios = 156
-                        )
-                        postId.contains("102") || postId.contains("Creatina") -> com.example.qualifygym_grupo13.data.model.Tema(
-                            id = "2",
-                            nombre = "Opiniones sobre Creatina Monohidratada",
-                            descripcion = "¿Realmente funciona la creatina?",
-                            ubicacion = "Nutrición y Suplementos",
-                            numeroComentarios = 89
-                        )
-                        else -> com.example.qualifygym_grupo13.data.model.Tema(
+                    val currentUser by authViewModel.currentUser.collectAsState()
+                    val context = LocalContext.current
+                    val scope = rememberCoroutineScope()
+                    
+                    // Obtener información de la publicación para mostrar en la pantalla
+                    var publicacionInfo by remember { mutableStateOf<com.example.qualifygym_grupo13.data.local.publicacion.PublicacionEntity?>(null) }
+                    
+                    LaunchedEffect(postId) {
+                        val pubId = postId.toLongOrNull()
+                        if (pubId != null) {
+                            publicacionInfo = publicacionViewModel.getPublicacionById(pubId)
+                        }
+                    }
+                    
+                    // Crear tema con información de la publicación
+                    val tema = remember(publicacionInfo) {
+                        publicacionInfo?.let { pub ->
+                            com.example.qualifygym_grupo13.data.model.Tema(
+                                id = pub.id_publicacion.toString(),
+                                nombre = pub.titulo,
+                                descripcion = pub.descripcion,
+                                ubicacion = "Publicación",
+                                numeroComentarios = 0
+                            )
+                        } ?: com.example.qualifygym_grupo13.data.model.Tema(
                             id = postId,
                             nombre = "Publicación",
                             descripcion = "Comentando en publicación",
@@ -405,8 +418,37 @@ fun AppNavGraph(
                         tema = tema,
                         onBackClick = { navController.popBackStack() },
                         onPublishClick = { title, comment, photos ->
-                            // TODO: Implementar lógica para publicar comentario en la publicación
-                            navController.popBackStack()
+                            scope.launch {
+                                if (currentUser == null) {
+                                    Toast.makeText(context, "Debe iniciar sesión para comentar", Toast.LENGTH_SHORT).show()
+                                    return@launch
+                                }
+                                
+                                if (comment.isBlank()) {
+                                    Toast.makeText(context, "El comentario no puede estar vacío", Toast.LENGTH_SHORT).show()
+                                    return@launch
+                                }
+                                
+                                val pubId = postId.toLongOrNull()
+                                if (pubId == null) {
+                                    Toast.makeText(context, "Error: ID de publicación inválido", Toast.LENGTH_SHORT).show()
+                                    return@launch
+                                }
+                                
+                                // Guardar el comentario en la base de datos
+                                val result = publicacionViewModel.createComentario(
+                                    comentario = comment,
+                                    userId = currentUser!!.id,
+                                    publicacionId = pubId
+                                )
+                                
+                                if (result.isSuccess) {
+                                    Toast.makeText(context, "Comentario publicado exitosamente", Toast.LENGTH_SHORT).show()
+                                    navController.popBackStack()
+                                } else {
+                                    Toast.makeText(context, "Error al publicar comentario: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                                }
+                            }
                         }
                     )
                 }
