@@ -99,7 +99,7 @@ fun AppNavGraph(
 
         drawerContent = { // Contenido del drawer (menú)
             // Obtener usuario actual del ViewModel
-            val currentUser by authViewModel.currentUser.collectAsState()
+            val currentUserDrawer by authViewModel.currentUser.collectAsState()
             
             AppDrawer( // Nuestro componente Drawer
                 currentRoute = currentRoute, // Ruta actual
@@ -117,12 +117,15 @@ fun AppNavGraph(
                         logout() // Cierra sesión
                     }
                 ),
-                userName = currentUser?.name ?: "Usuario Demo",
-                userEmail = currentUser?.email ?: "usuario@demo.com",
+                userName = currentUserDrawer?.name ?: "Usuario Demo",
+                userEmail = currentUserDrawer?.email ?: "usuario@demo.com",
                 userPhotoUri = null
             )
         }
     ) {
+        // Obtener usuario actual para toda la barra superior
+        val currentUser by authViewModel.currentUser.collectAsState()
+        
         Scaffold (
             topBar = { // Barra superior con íconos/menú
                 //Mostrar la topBar solo si la ruta actual no esta en la lista
@@ -131,7 +134,8 @@ fun AppNavGraph(
                         onOpenDrawer = { scope.launch { drawerState.open() } }, // Abre drawer
                         onHome = goHome,     // Botón Home
                         onLogin = goLogin,   // Botón Login
-                        onRegister = goRegister // Botón Registro
+                        onRegister = goRegister, // Botón Registro
+                        currentUser = currentUser // Pasar usuario actual para mostrar indicador de admin
                     )
                 }
             }
@@ -293,6 +297,10 @@ fun AppNavGraph(
                 }
                 composable(Route.TopicDetail.path) { backStackEntry ->
                     val topicId = backStackEntry.arguments?.getString(Route.TopicDetail.ARG_TOPIC_ID) ?: ""
+                    val currentUser by authViewModel.currentUser.collectAsState()
+                    val context = LocalContext.current
+                    val scope = rememberCoroutineScope()
+                    
                     // Datos de ejemplo para el tema y sus comentarios
                     val tema = when(topicId) {
                         "1" -> com.example.qualifygym_grupo13.data.model.Tema(
@@ -337,9 +345,28 @@ fun AppNavGraph(
                     TopicDetailScreen(
                         tema = tema,
                         comentarios = comentarios,
+                        currentUser = currentUser,
                         onBackClick = { navController.popBackStack() },
                         onCommentClick = { commentId -> /* Navegar al detalle del comentario si es necesario */ },
-                        onCreateCommentClick = { openWriteComment(topicId) }
+                        onCreateCommentClick = { openWriteComment(topicId) },
+                        onHideComment = { commentId ->
+                            scope.launch {
+                                // TODO: Implementar cuando se tenga el publicacionViewModel con comentarios reales
+                                Toast.makeText(context, "Comentario ocultado", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onShowComment = { commentId ->
+                            scope.launch {
+                                // TODO: Implementar cuando se tenga el publicacionViewModel con comentarios reales
+                                Toast.makeText(context, "Comentario mostrado", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onDeleteComment = { commentId ->
+                            scope.launch {
+                                // TODO: Implementar cuando se tenga el publicacionViewModel con comentarios reales
+                                Toast.makeText(context, "Comentario eliminado", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     )
                 }
                 composable(Route.WriteComment.path) { backStackEntry ->

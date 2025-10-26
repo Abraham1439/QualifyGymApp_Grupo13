@@ -40,5 +40,37 @@ class ComentarioRepository(private val comentarioDao: ComentarioDao) {
     suspend fun deleteComentario(id: Long) {
         comentarioDao.deleteById(id)
     }
+    
+    // Ocultar comentario (actualizar campo oculto a true)
+    suspend fun ocultarComentario(id: Long): Result<Unit> {
+        return try {
+            val comentario = comentarioDao.getById(id)
+            if (comentario != null) {
+                val comentarioActualizado = comentario.copy(oculto = true)
+                comentarioDao.update(comentarioActualizado)
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Comentario no encontrado"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    // Mostrar comentario (actualizar campo oculto a false)
+    suspend fun mostrarComentario(id: Long): Result<Unit> {
+        return try {
+            val comentario = comentarioDao.getById(id)
+            if (comentario != null) {
+                val comentarioActualizado = comentario.copy(oculto = false)
+                comentarioDao.update(comentarioActualizado)
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Comentario no encontrado"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
 

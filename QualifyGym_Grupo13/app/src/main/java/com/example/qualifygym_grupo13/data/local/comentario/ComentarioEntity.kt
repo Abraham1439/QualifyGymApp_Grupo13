@@ -30,6 +30,7 @@ data class ComentarioEntity(
     val id_comentario: Long = 0,
     val comentario: String,
     val fecha_registro: Long, // Timestamp en milisegundos
+    val oculto: Boolean = false,        // Indica si el comentario está oculto
     val fecha_baneo: Long? = null,
     val motivo_baneo: String? = null,
     val Usuarios_id_usuario: Long,

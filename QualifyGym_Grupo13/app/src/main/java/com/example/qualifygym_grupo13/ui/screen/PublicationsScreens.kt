@@ -1,5 +1,6 @@
 package com.example.qualifygym_grupo13.ui.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,7 +10,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.qualifygym_grupo13.data.local.database.AppDatabase
 import com.example.qualifygym_grupo13.data.model.Publicacion
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -71,8 +77,11 @@ fun PublicationDetailScreen(
     publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel? = null,
     authViewModel: com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel? = null,
     onBack: () -> Unit,
-    onWriteComment: (String) -> Unit = {}
+    onWriteComment: (String) -> Unit = {},
+    onPublicationHidden: () -> Unit = {},
+    onPublicationDeleted: () -> Unit = {}
 ) {
+    val currentUser by authViewModel?.currentUser?.collectAsState() ?: remember { mutableStateOf(null) }
     val context = LocalContext.current
     val db = AppDatabase.getInstance(context)
     val scope = rememberCoroutineScope()
@@ -81,6 +90,7 @@ fun PublicationDetailScreen(
     var publicacion by remember { mutableStateOf<com.example.qualifygym_grupo13.data.local.publicacion.PublicacionEntity?>(null) }
     var autorName by remember { mutableStateOf("Usuario") }
     var isLoading by remember { mutableStateOf(true) }
+    var showAdminMenu by remember { mutableStateOf(false) }
     
     // Obtener comentarios de la base de datos
     val comentariosDb = publicacionViewModel?.getComentariosByPublicacionId(postId.toLongOrNull() ?: 0)?.collectAsState()?.value ?: emptyList()
@@ -134,7 +144,19 @@ fun PublicationDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Detalle de Publicación") },
+                title = { 
+                    Column {
+                        Text("Detalle de Publicación")
+                        // Indicador de administrador
+                        if (currentUser?.isAdmin == true) {
+                            Text(
+                                text = "👑 Modo Administrador",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFFFFD700)
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -193,14 +215,103 @@ fun PublicationDetailScreen(
             ) {
                 item { Spacer(modifier = Modifier.height(8.dp)) }
                 
-                // Título de la publicación
+                // Título de la publicación con menú de administrador
                 item {
-                    Text(
-                        text = publicacion!!.titulo,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Text(
+                            text = publicacion!!.titulo,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                        
+                        // Menú de administrador (solo visible para admins)
+                        if (currentUser?.isAdmin == true) {
+                            Box {
+                                IconButton(onClick = { showAdminMenu = true }) {
+                                    Icon(
+                                        imageVector = Icons.Default.MoreVert,
+                                        contentDescription = "Opciones de administrador",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                
+                                DropdownMenu(
+                                    expanded = showAdminMenu,
+                                    onDismissRequest = { showAdminMenu = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Ocultar publicación") },
+                                        onClick = {
+                                            scope.launch {
+                                                publicacion?.let { pub ->
+                                                    val updatedPub = pub.copy(oculta = true)
+                                                    db.publicacionDao().update(updatedPub)
+                                                    Toast.makeText(context, "Publicación ocultada", Toast.LENGTH_SHORT).show()
+                                                    onPublicationHidden()
+                                                }
+                                            }
+                                            showAdminMenu = false
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.VisibilityOff,
+                                                contentDescription = null
+                                            )
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Mostrar publicación") },
+                                        onClick = {
+                                            scope.launch {
+                                                publicacion?.let { pub ->
+                                                    val updatedPub = pub.copy(oculta = false)
+                                                    db.publicacionDao().update(updatedPub)
+                                                    Toast.makeText(context, "Publicación mostrada", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                            showAdminMenu = false
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.Visibility,
+                                                contentDescription = null
+                                            )
+                                        }
+                                    )
+                                    HorizontalDivider()
+                                    DropdownMenuItem(
+                                        text = { Text("Borrar publicación") },
+                                        onClick = {
+                                            scope.launch {
+                                                publicacion?.let { pub ->
+                                                    db.publicacionDao().deleteById(pub.id_publicacion)
+                                                    Toast.makeText(context, "Publicación eliminada", Toast.LENGTH_SHORT).show()
+                                                    onPublicationDeleted()
+                                                }
+                                            }
+                                            showAdminMenu = false
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.error
+                                            )
+                                        },
+                                        colors = MenuDefaults.itemColors(
+                                            textColor = MaterialTheme.colorScheme.error
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
                 
                 // Autor y fecha

@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
         ComentarioEntity::class,
         ImagenEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true // Mantener true para inspección de esquema (útil en educación)
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -91,19 +91,21 @@ abstract class AppDatabase : RoomDatabase() {
             val estadoDao = database.estadoDao()
             val temaDao = database.temaDao()
 
-            // Precarga de usuarios (incluye teléfono)
+            // Precarga de usuarios (incluye teléfono e isAdmin)
             val userSeed = listOf(
                 UserEntity(
                     name = "Admin",
                     email = "admin@duoc.cl",
                     phone = "+56911111111",
-                    password = "Admin123!"
+                    password = "Admin123!",
+                    isAdmin = true  // Usuario administrador
                 ),
                 UserEntity(
                     name = "Víctor Rosendo",
                     email = "victor@duoc.cl",
                     phone = "+56922222222",
-                    password = "123456"
+                    password = "123456",
+                    isAdmin = false  // Usuario normal
                 )
             )
 

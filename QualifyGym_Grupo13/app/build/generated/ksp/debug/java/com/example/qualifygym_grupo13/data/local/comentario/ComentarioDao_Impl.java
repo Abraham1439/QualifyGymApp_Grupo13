@@ -46,7 +46,7 @@ public final class ComentarioDao_Impl implements ComentarioDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR ABORT INTO `comentarios` (`id_comentario`,`comentario`,`fecha_registro`,`fecha_baneo`,`motivo_baneo`,`Usuarios_id_usuario`,`Publicacion_id_publicacion`) VALUES (nullif(?, 0),?,?,?,?,?,?)";
+        return "INSERT OR ABORT INTO `comentarios` (`id_comentario`,`comentario`,`fecha_registro`,`oculto`,`fecha_baneo`,`motivo_baneo`,`Usuarios_id_usuario`,`Publicacion_id_publicacion`) VALUES (nullif(?, 0),?,?,?,?,?,?,?)";
       }
 
       @Override
@@ -55,25 +55,27 @@ public final class ComentarioDao_Impl implements ComentarioDao {
         statement.bindLong(1, entity.getId_comentario());
         statement.bindString(2, entity.getComentario());
         statement.bindLong(3, entity.getFecha_registro());
+        final int _tmp = entity.getOculto() ? 1 : 0;
+        statement.bindLong(4, _tmp);
         if (entity.getFecha_baneo() == null) {
-          statement.bindNull(4);
-        } else {
-          statement.bindLong(4, entity.getFecha_baneo());
-        }
-        if (entity.getMotivo_baneo() == null) {
           statement.bindNull(5);
         } else {
-          statement.bindString(5, entity.getMotivo_baneo());
+          statement.bindLong(5, entity.getFecha_baneo());
         }
-        statement.bindLong(6, entity.getUsuarios_id_usuario());
-        statement.bindLong(7, entity.getPublicacion_id_publicacion());
+        if (entity.getMotivo_baneo() == null) {
+          statement.bindNull(6);
+        } else {
+          statement.bindString(6, entity.getMotivo_baneo());
+        }
+        statement.bindLong(7, entity.getUsuarios_id_usuario());
+        statement.bindLong(8, entity.getPublicacion_id_publicacion());
       }
     };
     this.__updateAdapterOfComentarioEntity = new EntityDeletionOrUpdateAdapter<ComentarioEntity>(__db) {
       @Override
       @NonNull
       protected String createQuery() {
-        return "UPDATE OR ABORT `comentarios` SET `id_comentario` = ?,`comentario` = ?,`fecha_registro` = ?,`fecha_baneo` = ?,`motivo_baneo` = ?,`Usuarios_id_usuario` = ?,`Publicacion_id_publicacion` = ? WHERE `id_comentario` = ?";
+        return "UPDATE OR ABORT `comentarios` SET `id_comentario` = ?,`comentario` = ?,`fecha_registro` = ?,`oculto` = ?,`fecha_baneo` = ?,`motivo_baneo` = ?,`Usuarios_id_usuario` = ?,`Publicacion_id_publicacion` = ? WHERE `id_comentario` = ?";
       }
 
       @Override
@@ -82,19 +84,21 @@ public final class ComentarioDao_Impl implements ComentarioDao {
         statement.bindLong(1, entity.getId_comentario());
         statement.bindString(2, entity.getComentario());
         statement.bindLong(3, entity.getFecha_registro());
+        final int _tmp = entity.getOculto() ? 1 : 0;
+        statement.bindLong(4, _tmp);
         if (entity.getFecha_baneo() == null) {
-          statement.bindNull(4);
-        } else {
-          statement.bindLong(4, entity.getFecha_baneo());
-        }
-        if (entity.getMotivo_baneo() == null) {
           statement.bindNull(5);
         } else {
-          statement.bindString(5, entity.getMotivo_baneo());
+          statement.bindLong(5, entity.getFecha_baneo());
         }
-        statement.bindLong(6, entity.getUsuarios_id_usuario());
-        statement.bindLong(7, entity.getPublicacion_id_publicacion());
-        statement.bindLong(8, entity.getId_comentario());
+        if (entity.getMotivo_baneo() == null) {
+          statement.bindNull(6);
+        } else {
+          statement.bindString(6, entity.getMotivo_baneo());
+        }
+        statement.bindLong(7, entity.getUsuarios_id_usuario());
+        statement.bindLong(8, entity.getPublicacion_id_publicacion());
+        statement.bindLong(9, entity.getId_comentario());
       }
     };
     this.__preparedStmtOfDeleteById = new SharedSQLiteStatement(__db) {
@@ -185,6 +189,7 @@ public final class ComentarioDao_Impl implements ComentarioDao {
           final int _cursorIndexOfIdComentario = CursorUtil.getColumnIndexOrThrow(_cursor, "id_comentario");
           final int _cursorIndexOfComentario = CursorUtil.getColumnIndexOrThrow(_cursor, "comentario");
           final int _cursorIndexOfFechaRegistro = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha_registro");
+          final int _cursorIndexOfOculto = CursorUtil.getColumnIndexOrThrow(_cursor, "oculto");
           final int _cursorIndexOfFechaBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha_baneo");
           final int _cursorIndexOfMotivoBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "motivo_baneo");
           final int _cursorIndexOfUsuariosIdUsuario = CursorUtil.getColumnIndexOrThrow(_cursor, "Usuarios_id_usuario");
@@ -198,6 +203,10 @@ public final class ComentarioDao_Impl implements ComentarioDao {
             _tmpComentario = _cursor.getString(_cursorIndexOfComentario);
             final long _tmpFecha_registro;
             _tmpFecha_registro = _cursor.getLong(_cursorIndexOfFechaRegistro);
+            final boolean _tmpOculto;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfOculto);
+            _tmpOculto = _tmp != 0;
             final Long _tmpFecha_baneo;
             if (_cursor.isNull(_cursorIndexOfFechaBaneo)) {
               _tmpFecha_baneo = null;
@@ -214,7 +223,7 @@ public final class ComentarioDao_Impl implements ComentarioDao {
             _tmpUsuarios_id_usuario = _cursor.getLong(_cursorIndexOfUsuariosIdUsuario);
             final long _tmpPublicacion_id_publicacion;
             _tmpPublicacion_id_publicacion = _cursor.getLong(_cursorIndexOfPublicacionIdPublicacion);
-            _item = new ComentarioEntity(_tmpId_comentario,_tmpComentario,_tmpFecha_registro,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpPublicacion_id_publicacion);
+            _item = new ComentarioEntity(_tmpId_comentario,_tmpComentario,_tmpFecha_registro,_tmpOculto,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpPublicacion_id_publicacion);
             _result.add(_item);
           }
           return _result;
@@ -245,6 +254,7 @@ public final class ComentarioDao_Impl implements ComentarioDao {
           final int _cursorIndexOfIdComentario = CursorUtil.getColumnIndexOrThrow(_cursor, "id_comentario");
           final int _cursorIndexOfComentario = CursorUtil.getColumnIndexOrThrow(_cursor, "comentario");
           final int _cursorIndexOfFechaRegistro = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha_registro");
+          final int _cursorIndexOfOculto = CursorUtil.getColumnIndexOrThrow(_cursor, "oculto");
           final int _cursorIndexOfFechaBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha_baneo");
           final int _cursorIndexOfMotivoBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "motivo_baneo");
           final int _cursorIndexOfUsuariosIdUsuario = CursorUtil.getColumnIndexOrThrow(_cursor, "Usuarios_id_usuario");
@@ -258,6 +268,10 @@ public final class ComentarioDao_Impl implements ComentarioDao {
             _tmpComentario = _cursor.getString(_cursorIndexOfComentario);
             final long _tmpFecha_registro;
             _tmpFecha_registro = _cursor.getLong(_cursorIndexOfFechaRegistro);
+            final boolean _tmpOculto;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfOculto);
+            _tmpOculto = _tmp != 0;
             final Long _tmpFecha_baneo;
             if (_cursor.isNull(_cursorIndexOfFechaBaneo)) {
               _tmpFecha_baneo = null;
@@ -274,7 +288,7 @@ public final class ComentarioDao_Impl implements ComentarioDao {
             _tmpUsuarios_id_usuario = _cursor.getLong(_cursorIndexOfUsuariosIdUsuario);
             final long _tmpPublicacion_id_publicacion;
             _tmpPublicacion_id_publicacion = _cursor.getLong(_cursorIndexOfPublicacionIdPublicacion);
-            _item = new ComentarioEntity(_tmpId_comentario,_tmpComentario,_tmpFecha_registro,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpPublicacion_id_publicacion);
+            _item = new ComentarioEntity(_tmpId_comentario,_tmpComentario,_tmpFecha_registro,_tmpOculto,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpPublicacion_id_publicacion);
             _result.add(_item);
           }
           return _result;
@@ -306,6 +320,7 @@ public final class ComentarioDao_Impl implements ComentarioDao {
           final int _cursorIndexOfIdComentario = CursorUtil.getColumnIndexOrThrow(_cursor, "id_comentario");
           final int _cursorIndexOfComentario = CursorUtil.getColumnIndexOrThrow(_cursor, "comentario");
           final int _cursorIndexOfFechaRegistro = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha_registro");
+          final int _cursorIndexOfOculto = CursorUtil.getColumnIndexOrThrow(_cursor, "oculto");
           final int _cursorIndexOfFechaBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha_baneo");
           final int _cursorIndexOfMotivoBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "motivo_baneo");
           final int _cursorIndexOfUsuariosIdUsuario = CursorUtil.getColumnIndexOrThrow(_cursor, "Usuarios_id_usuario");
@@ -318,6 +333,10 @@ public final class ComentarioDao_Impl implements ComentarioDao {
             _tmpComentario = _cursor.getString(_cursorIndexOfComentario);
             final long _tmpFecha_registro;
             _tmpFecha_registro = _cursor.getLong(_cursorIndexOfFechaRegistro);
+            final boolean _tmpOculto;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfOculto);
+            _tmpOculto = _tmp != 0;
             final Long _tmpFecha_baneo;
             if (_cursor.isNull(_cursorIndexOfFechaBaneo)) {
               _tmpFecha_baneo = null;
@@ -334,7 +353,7 @@ public final class ComentarioDao_Impl implements ComentarioDao {
             _tmpUsuarios_id_usuario = _cursor.getLong(_cursorIndexOfUsuariosIdUsuario);
             final long _tmpPublicacion_id_publicacion;
             _tmpPublicacion_id_publicacion = _cursor.getLong(_cursorIndexOfPublicacionIdPublicacion);
-            _result = new ComentarioEntity(_tmpId_comentario,_tmpComentario,_tmpFecha_registro,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpPublicacion_id_publicacion);
+            _result = new ComentarioEntity(_tmpId_comentario,_tmpComentario,_tmpFecha_registro,_tmpOculto,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpPublicacion_id_publicacion);
           } else {
             _result = null;
           }

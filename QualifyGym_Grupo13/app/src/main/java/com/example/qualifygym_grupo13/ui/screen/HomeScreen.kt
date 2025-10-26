@@ -15,7 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 // Importamos los modelos y items que acabamos de crear
-    import com.example.qualifygym_grupo13.data.model.Publicacion
+import com.example.qualifygym_grupo13.data.model.Publicacion
 import com.example.qualifygym_grupo13.data.model.Tema
 import com.example.qualifygym_grupo13.navigation.BottomNavItem
 

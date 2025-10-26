@@ -43,7 +43,7 @@ public final class UserDao_Impl implements UserDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR ABORT INTO `users` (`id`,`name`,`email`,`phone`,`password`) VALUES (nullif(?, 0),?,?,?,?)";
+        return "INSERT OR ABORT INTO `users` (`id`,`name`,`email`,`phone`,`password`,`isAdmin`) VALUES (nullif(?, 0),?,?,?,?,?)";
       }
 
       @Override
@@ -54,13 +54,15 @@ public final class UserDao_Impl implements UserDao {
         statement.bindString(3, entity.getEmail());
         statement.bindString(4, entity.getPhone());
         statement.bindString(5, entity.getPassword());
+        final int _tmp = entity.isAdmin() ? 1 : 0;
+        statement.bindLong(6, _tmp);
       }
     };
     this.__updateAdapterOfUserEntity = new EntityDeletionOrUpdateAdapter<UserEntity>(__db) {
       @Override
       @NonNull
       protected String createQuery() {
-        return "UPDATE OR ABORT `users` SET `id` = ?,`name` = ?,`email` = ?,`phone` = ?,`password` = ? WHERE `id` = ?";
+        return "UPDATE OR ABORT `users` SET `id` = ?,`name` = ?,`email` = ?,`phone` = ?,`password` = ?,`isAdmin` = ? WHERE `id` = ?";
       }
 
       @Override
@@ -71,7 +73,9 @@ public final class UserDao_Impl implements UserDao {
         statement.bindString(3, entity.getEmail());
         statement.bindString(4, entity.getPhone());
         statement.bindString(5, entity.getPassword());
-        statement.bindLong(6, entity.getId());
+        final int _tmp = entity.isAdmin() ? 1 : 0;
+        statement.bindLong(6, _tmp);
+        statement.bindLong(7, entity.getId());
       }
     };
   }
@@ -130,6 +134,7 @@ public final class UserDao_Impl implements UserDao {
           final int _cursorIndexOfEmail = CursorUtil.getColumnIndexOrThrow(_cursor, "email");
           final int _cursorIndexOfPhone = CursorUtil.getColumnIndexOrThrow(_cursor, "phone");
           final int _cursorIndexOfPassword = CursorUtil.getColumnIndexOrThrow(_cursor, "password");
+          final int _cursorIndexOfIsAdmin = CursorUtil.getColumnIndexOrThrow(_cursor, "isAdmin");
           final UserEntity _result;
           if (_cursor.moveToFirst()) {
             final long _tmpId;
@@ -142,7 +147,11 @@ public final class UserDao_Impl implements UserDao {
             _tmpPhone = _cursor.getString(_cursorIndexOfPhone);
             final String _tmpPassword;
             _tmpPassword = _cursor.getString(_cursorIndexOfPassword);
-            _result = new UserEntity(_tmpId,_tmpName,_tmpEmail,_tmpPhone,_tmpPassword);
+            final boolean _tmpIsAdmin;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfIsAdmin);
+            _tmpIsAdmin = _tmp != 0;
+            _result = new UserEntity(_tmpId,_tmpName,_tmpEmail,_tmpPhone,_tmpPassword,_tmpIsAdmin);
           } else {
             _result = null;
           }
@@ -173,6 +182,7 @@ public final class UserDao_Impl implements UserDao {
           final int _cursorIndexOfEmail = CursorUtil.getColumnIndexOrThrow(_cursor, "email");
           final int _cursorIndexOfPhone = CursorUtil.getColumnIndexOrThrow(_cursor, "phone");
           final int _cursorIndexOfPassword = CursorUtil.getColumnIndexOrThrow(_cursor, "password");
+          final int _cursorIndexOfIsAdmin = CursorUtil.getColumnIndexOrThrow(_cursor, "isAdmin");
           final UserEntity _result;
           if (_cursor.moveToFirst()) {
             final long _tmpId;
@@ -185,7 +195,11 @@ public final class UserDao_Impl implements UserDao {
             _tmpPhone = _cursor.getString(_cursorIndexOfPhone);
             final String _tmpPassword;
             _tmpPassword = _cursor.getString(_cursorIndexOfPassword);
-            _result = new UserEntity(_tmpId,_tmpName,_tmpEmail,_tmpPhone,_tmpPassword);
+            final boolean _tmpIsAdmin;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfIsAdmin);
+            _tmpIsAdmin = _tmp != 0;
+            _result = new UserEntity(_tmpId,_tmpName,_tmpEmail,_tmpPhone,_tmpPassword,_tmpIsAdmin);
           } else {
             _result = null;
           }
@@ -242,6 +256,7 @@ public final class UserDao_Impl implements UserDao {
           final int _cursorIndexOfEmail = CursorUtil.getColumnIndexOrThrow(_cursor, "email");
           final int _cursorIndexOfPhone = CursorUtil.getColumnIndexOrThrow(_cursor, "phone");
           final int _cursorIndexOfPassword = CursorUtil.getColumnIndexOrThrow(_cursor, "password");
+          final int _cursorIndexOfIsAdmin = CursorUtil.getColumnIndexOrThrow(_cursor, "isAdmin");
           final List<UserEntity> _result = new ArrayList<UserEntity>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final UserEntity _item;
@@ -255,7 +270,11 @@ public final class UserDao_Impl implements UserDao {
             _tmpPhone = _cursor.getString(_cursorIndexOfPhone);
             final String _tmpPassword;
             _tmpPassword = _cursor.getString(_cursorIndexOfPassword);
-            _item = new UserEntity(_tmpId,_tmpName,_tmpEmail,_tmpPhone,_tmpPassword);
+            final boolean _tmpIsAdmin;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfIsAdmin);
+            _tmpIsAdmin = _tmp != 0;
+            _item = new UserEntity(_tmpId,_tmpName,_tmpEmail,_tmpPhone,_tmpPassword,_tmpIsAdmin);
             _result.add(_item);
           }
           return _result;

@@ -31,6 +31,7 @@ data class PublicacionEntity(
     val titulo: String,
     val fecha: Long, // Timestamp en milisegundos
     val descripcion: String,
+    val oculta: Boolean = false,        // Indica si la publicación está oculta
     val fecha_baneo: Long? = null,
     val motivo_baneo: String? = null,
     val Usuarios_id_usuario: Long,

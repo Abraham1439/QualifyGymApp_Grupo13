@@ -54,24 +54,24 @@ public final class AppDatabase_Impl extends AppDatabase {
   @Override
   @NonNull
   protected SupportSQLiteOpenHelper createOpenHelper(@NonNull final DatabaseConfiguration config) {
-    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(config, new RoomOpenHelper.Delegate(2) {
+    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(config, new RoomOpenHelper.Delegate(3) {
       @Override
       public void createAllTables(@NonNull final SupportSQLiteDatabase db) {
-        db.execSQL("CREATE TABLE IF NOT EXISTS `users` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `email` TEXT NOT NULL, `phone` TEXT NOT NULL, `password` TEXT NOT NULL)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS `users` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `email` TEXT NOT NULL, `phone` TEXT NOT NULL, `password` TEXT NOT NULL, `isAdmin` INTEGER NOT NULL)");
         db.execSQL("CREATE TABLE IF NOT EXISTS `estados` (`id_estado` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nombre` TEXT NOT NULL)");
         db.execSQL("CREATE TABLE IF NOT EXISTS `temas` (`id_tema` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nombre_tema` TEXT NOT NULL, `Estado_id_estado` INTEGER NOT NULL, FOREIGN KEY(`Estado_id_estado`) REFERENCES `estados`(`id_estado`) ON UPDATE NO ACTION ON DELETE CASCADE )");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_temas_Estado_id_estado` ON `temas` (`Estado_id_estado`)");
-        db.execSQL("CREATE TABLE IF NOT EXISTS `publicaciones` (`id_publicacion` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `titulo` TEXT NOT NULL, `fecha` INTEGER NOT NULL, `descripcion` TEXT NOT NULL, `fecha_baneo` INTEGER, `motivo_baneo` TEXT, `Usuarios_id_usuario` INTEGER NOT NULL, `Tema_id_tema` INTEGER NOT NULL, FOREIGN KEY(`Usuarios_id_usuario`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`Tema_id_tema`) REFERENCES `temas`(`id_tema`) ON UPDATE NO ACTION ON DELETE CASCADE )");
+        db.execSQL("CREATE TABLE IF NOT EXISTS `publicaciones` (`id_publicacion` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `titulo` TEXT NOT NULL, `fecha` INTEGER NOT NULL, `descripcion` TEXT NOT NULL, `oculta` INTEGER NOT NULL, `fecha_baneo` INTEGER, `motivo_baneo` TEXT, `Usuarios_id_usuario` INTEGER NOT NULL, `Tema_id_tema` INTEGER NOT NULL, FOREIGN KEY(`Usuarios_id_usuario`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`Tema_id_tema`) REFERENCES `temas`(`id_tema`) ON UPDATE NO ACTION ON DELETE CASCADE )");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_publicaciones_Usuarios_id_usuario` ON `publicaciones` (`Usuarios_id_usuario`)");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_publicaciones_Tema_id_tema` ON `publicaciones` (`Tema_id_tema`)");
-        db.execSQL("CREATE TABLE IF NOT EXISTS `comentarios` (`id_comentario` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `comentario` TEXT NOT NULL, `fecha_registro` INTEGER NOT NULL, `fecha_baneo` INTEGER, `motivo_baneo` TEXT, `Usuarios_id_usuario` INTEGER NOT NULL, `Publicacion_id_publicacion` INTEGER NOT NULL, FOREIGN KEY(`Usuarios_id_usuario`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`Publicacion_id_publicacion`) REFERENCES `publicaciones`(`id_publicacion`) ON UPDATE NO ACTION ON DELETE CASCADE )");
+        db.execSQL("CREATE TABLE IF NOT EXISTS `comentarios` (`id_comentario` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `comentario` TEXT NOT NULL, `fecha_registro` INTEGER NOT NULL, `oculto` INTEGER NOT NULL, `fecha_baneo` INTEGER, `motivo_baneo` TEXT, `Usuarios_id_usuario` INTEGER NOT NULL, `Publicacion_id_publicacion` INTEGER NOT NULL, FOREIGN KEY(`Usuarios_id_usuario`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`Publicacion_id_publicacion`) REFERENCES `publicaciones`(`id_publicacion`) ON UPDATE NO ACTION ON DELETE CASCADE )");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_comentarios_Usuarios_id_usuario` ON `comentarios` (`Usuarios_id_usuario`)");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_comentarios_Publicacion_id_publicacion` ON `comentarios` (`Publicacion_id_publicacion`)");
         db.execSQL("CREATE TABLE IF NOT EXISTS `imagenes` (`id_imagen` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nombre_imagen` TEXT NOT NULL, `imagen` BLOB NOT NULL, `Publicacion_id_publicacion` INTEGER NOT NULL, `Estado_id_estado` INTEGER NOT NULL, FOREIGN KEY(`Publicacion_id_publicacion`) REFERENCES `publicaciones`(`id_publicacion`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`Estado_id_estado`) REFERENCES `estados`(`id_estado`) ON UPDATE NO ACTION ON DELETE CASCADE )");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_imagenes_Publicacion_id_publicacion` ON `imagenes` (`Publicacion_id_publicacion`)");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_imagenes_Estado_id_estado` ON `imagenes` (`Estado_id_estado`)");
         db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)");
-        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'fb95a0d8346b38a59a4a5af926f1f874')");
+        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5e3eb4a06c08800051d35cecbebe6b96')");
       }
 
       @Override
@@ -126,12 +126,13 @@ public final class AppDatabase_Impl extends AppDatabase {
       @NonNull
       public RoomOpenHelper.ValidationResult onValidateSchema(
           @NonNull final SupportSQLiteDatabase db) {
-        final HashMap<String, TableInfo.Column> _columnsUsers = new HashMap<String, TableInfo.Column>(5);
+        final HashMap<String, TableInfo.Column> _columnsUsers = new HashMap<String, TableInfo.Column>(6);
         _columnsUsers.put("id", new TableInfo.Column("id", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsUsers.put("name", new TableInfo.Column("name", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsUsers.put("email", new TableInfo.Column("email", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsUsers.put("phone", new TableInfo.Column("phone", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsUsers.put("password", new TableInfo.Column("password", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsUsers.put("isAdmin", new TableInfo.Column("isAdmin", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         final HashSet<TableInfo.ForeignKey> _foreignKeysUsers = new HashSet<TableInfo.ForeignKey>(0);
         final HashSet<TableInfo.Index> _indicesUsers = new HashSet<TableInfo.Index>(0);
         final TableInfo _infoUsers = new TableInfo("users", _columnsUsers, _foreignKeysUsers, _indicesUsers);
@@ -168,11 +169,12 @@ public final class AppDatabase_Impl extends AppDatabase {
                   + " Expected:\n" + _infoTemas + "\n"
                   + " Found:\n" + _existingTemas);
         }
-        final HashMap<String, TableInfo.Column> _columnsPublicaciones = new HashMap<String, TableInfo.Column>(8);
+        final HashMap<String, TableInfo.Column> _columnsPublicaciones = new HashMap<String, TableInfo.Column>(9);
         _columnsPublicaciones.put("id_publicacion", new TableInfo.Column("id_publicacion", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsPublicaciones.put("titulo", new TableInfo.Column("titulo", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsPublicaciones.put("fecha", new TableInfo.Column("fecha", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsPublicaciones.put("descripcion", new TableInfo.Column("descripcion", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsPublicaciones.put("oculta", new TableInfo.Column("oculta", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsPublicaciones.put("fecha_baneo", new TableInfo.Column("fecha_baneo", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsPublicaciones.put("motivo_baneo", new TableInfo.Column("motivo_baneo", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsPublicaciones.put("Usuarios_id_usuario", new TableInfo.Column("Usuarios_id_usuario", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
@@ -190,10 +192,11 @@ public final class AppDatabase_Impl extends AppDatabase {
                   + " Expected:\n" + _infoPublicaciones + "\n"
                   + " Found:\n" + _existingPublicaciones);
         }
-        final HashMap<String, TableInfo.Column> _columnsComentarios = new HashMap<String, TableInfo.Column>(7);
+        final HashMap<String, TableInfo.Column> _columnsComentarios = new HashMap<String, TableInfo.Column>(8);
         _columnsComentarios.put("id_comentario", new TableInfo.Column("id_comentario", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsComentarios.put("comentario", new TableInfo.Column("comentario", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsComentarios.put("fecha_registro", new TableInfo.Column("fecha_registro", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsComentarios.put("oculto", new TableInfo.Column("oculto", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsComentarios.put("fecha_baneo", new TableInfo.Column("fecha_baneo", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsComentarios.put("motivo_baneo", new TableInfo.Column("motivo_baneo", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsComentarios.put("Usuarios_id_usuario", new TableInfo.Column("Usuarios_id_usuario", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
@@ -232,7 +235,7 @@ public final class AppDatabase_Impl extends AppDatabase {
         }
         return new RoomOpenHelper.ValidationResult(true, null);
       }
-    }, "fb95a0d8346b38a59a4a5af926f1f874", "599a546ead6501336b0518682f59cce4");
+    }, "5e3eb4a06c08800051d35cecbebe6b96", "8654d8e7179e9f895fa1c0f88ac51200");
     final SupportSQLiteOpenHelper.Configuration _sqliteConfig = SupportSQLiteOpenHelper.Configuration.builder(config.context).name(config.name).callback(_openCallback).build();
     final SupportSQLiteOpenHelper _helper = config.sqliteOpenHelperFactory.create(_sqliteConfig);
     return _helper;

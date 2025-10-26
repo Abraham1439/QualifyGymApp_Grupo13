@@ -1,5 +1,6 @@
 package com.example.qualifygym_grupo13.ui.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,24 +12,46 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.qualifygym_grupo13.data.local.user.UserEntity
 import com.example.qualifygym_grupo13.data.model.Comentario
 import com.example.qualifygym_grupo13.data.model.Tema
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopicDetailScreen(
     tema: Tema,
     comentarios: List<Comentario>,
+    currentUser: UserEntity? = null,
     onBackClick: () -> Unit,
     onCommentClick: (String) -> Unit = {},
-    onCreateCommentClick: () -> Unit
+    onCreateCommentClick: () -> Unit,
+    onHideComment: (String) -> Unit = {},
+    onShowComment: (String) -> Unit = {},
+    onDeleteComment: (String) -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(tema.nombre) },
+                title = { 
+                    Column {
+                        Text(tema.nombre)
+                        // Indicador de administrador
+                        if (currentUser?.isAdmin == true) {
+                            Text(
+                                text = "👑 Modo Administrador",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFFFFD700) // Dorado
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -144,7 +167,11 @@ fun TopicDetailScreen(
             items(comentarios) { comentario ->
                 CommentCard(
                     comentario = comentario,
-                    onClick = { onCommentClick(comentario.id) }
+                    isAdmin = currentUser?.isAdmin == true,
+                    onClick = { onCommentClick(comentario.id) },
+                    onHide = { onHideComment(comentario.id) },
+                    onShow = { onShowComment(comentario.id) },
+                    onDelete = { onDeleteComment(comentario.id) }
                 )
             }
 
@@ -158,8 +185,14 @@ fun TopicDetailScreen(
 @Composable
 private fun CommentCard(
     comentario: Comentario,
-    onClick: () -> Unit
+    isAdmin: Boolean = false,
+    onClick: () -> Unit,
+    onHide: () -> Unit = {},
+    onShow: () -> Unit = {},
+    onDelete: () -> Unit = {}
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+    
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -171,13 +204,16 @@ private fun CommentCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // Encabezado con autor y fecha
+            // Encabezado con autor, fecha y menú de administrador
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = "Autor",
@@ -185,20 +221,84 @@ private fun CommentCard(
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "por ${comentario.autor}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Column {
+                        Text(
+                            text = "por ${comentario.autor}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        if (comentario.fecha.isNotEmpty()) {
+                            Text(
+                                text = comentario.fecha,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
                 
-                if (comentario.fecha.isNotEmpty()) {
-                    Text(
-                        text = comentario.fecha,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                // Menú de administrador (solo visible para admins)
+                if (isAdmin) {
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Opciones de administrador",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Ocultar comentario") },
+                                onClick = {
+                                    onHide()
+                                    showMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.VisibilityOff,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Mostrar comentario") },
+                                onClick = {
+                                    onShow()
+                                    showMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Visibility,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("Borrar comentario") },
+                                onClick = {
+                                    onDelete()
+                                    showMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                colors = MenuDefaults.itemColors(
+                                    textColor = MaterialTheme.colorScheme.error
+                                )
+                            )
+                        }
+                    }
                 }
             }
             

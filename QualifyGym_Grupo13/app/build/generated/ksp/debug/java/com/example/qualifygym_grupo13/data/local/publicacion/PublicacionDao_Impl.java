@@ -46,7 +46,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR ABORT INTO `publicaciones` (`id_publicacion`,`titulo`,`fecha`,`descripcion`,`fecha_baneo`,`motivo_baneo`,`Usuarios_id_usuario`,`Tema_id_tema`) VALUES (nullif(?, 0),?,?,?,?,?,?,?)";
+        return "INSERT OR ABORT INTO `publicaciones` (`id_publicacion`,`titulo`,`fecha`,`descripcion`,`oculta`,`fecha_baneo`,`motivo_baneo`,`Usuarios_id_usuario`,`Tema_id_tema`) VALUES (nullif(?, 0),?,?,?,?,?,?,?,?)";
       }
 
       @Override
@@ -56,25 +56,27 @@ public final class PublicacionDao_Impl implements PublicacionDao {
         statement.bindString(2, entity.getTitulo());
         statement.bindLong(3, entity.getFecha());
         statement.bindString(4, entity.getDescripcion());
+        final int _tmp = entity.getOculta() ? 1 : 0;
+        statement.bindLong(5, _tmp);
         if (entity.getFecha_baneo() == null) {
-          statement.bindNull(5);
-        } else {
-          statement.bindLong(5, entity.getFecha_baneo());
-        }
-        if (entity.getMotivo_baneo() == null) {
           statement.bindNull(6);
         } else {
-          statement.bindString(6, entity.getMotivo_baneo());
+          statement.bindLong(6, entity.getFecha_baneo());
         }
-        statement.bindLong(7, entity.getUsuarios_id_usuario());
-        statement.bindLong(8, entity.getTema_id_tema());
+        if (entity.getMotivo_baneo() == null) {
+          statement.bindNull(7);
+        } else {
+          statement.bindString(7, entity.getMotivo_baneo());
+        }
+        statement.bindLong(8, entity.getUsuarios_id_usuario());
+        statement.bindLong(9, entity.getTema_id_tema());
       }
     };
     this.__updateAdapterOfPublicacionEntity = new EntityDeletionOrUpdateAdapter<PublicacionEntity>(__db) {
       @Override
       @NonNull
       protected String createQuery() {
-        return "UPDATE OR ABORT `publicaciones` SET `id_publicacion` = ?,`titulo` = ?,`fecha` = ?,`descripcion` = ?,`fecha_baneo` = ?,`motivo_baneo` = ?,`Usuarios_id_usuario` = ?,`Tema_id_tema` = ? WHERE `id_publicacion` = ?";
+        return "UPDATE OR ABORT `publicaciones` SET `id_publicacion` = ?,`titulo` = ?,`fecha` = ?,`descripcion` = ?,`oculta` = ?,`fecha_baneo` = ?,`motivo_baneo` = ?,`Usuarios_id_usuario` = ?,`Tema_id_tema` = ? WHERE `id_publicacion` = ?";
       }
 
       @Override
@@ -84,19 +86,21 @@ public final class PublicacionDao_Impl implements PublicacionDao {
         statement.bindString(2, entity.getTitulo());
         statement.bindLong(3, entity.getFecha());
         statement.bindString(4, entity.getDescripcion());
+        final int _tmp = entity.getOculta() ? 1 : 0;
+        statement.bindLong(5, _tmp);
         if (entity.getFecha_baneo() == null) {
-          statement.bindNull(5);
-        } else {
-          statement.bindLong(5, entity.getFecha_baneo());
-        }
-        if (entity.getMotivo_baneo() == null) {
           statement.bindNull(6);
         } else {
-          statement.bindString(6, entity.getMotivo_baneo());
+          statement.bindLong(6, entity.getFecha_baneo());
         }
-        statement.bindLong(7, entity.getUsuarios_id_usuario());
-        statement.bindLong(8, entity.getTema_id_tema());
-        statement.bindLong(9, entity.getId_publicacion());
+        if (entity.getMotivo_baneo() == null) {
+          statement.bindNull(7);
+        } else {
+          statement.bindString(7, entity.getMotivo_baneo());
+        }
+        statement.bindLong(8, entity.getUsuarios_id_usuario());
+        statement.bindLong(9, entity.getTema_id_tema());
+        statement.bindLong(10, entity.getId_publicacion());
       }
     };
     this.__preparedStmtOfDeleteById = new SharedSQLiteStatement(__db) {
@@ -186,6 +190,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
           final int _cursorIndexOfTitulo = CursorUtil.getColumnIndexOrThrow(_cursor, "titulo");
           final int _cursorIndexOfFecha = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha");
           final int _cursorIndexOfDescripcion = CursorUtil.getColumnIndexOrThrow(_cursor, "descripcion");
+          final int _cursorIndexOfOculta = CursorUtil.getColumnIndexOrThrow(_cursor, "oculta");
           final int _cursorIndexOfFechaBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha_baneo");
           final int _cursorIndexOfMotivoBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "motivo_baneo");
           final int _cursorIndexOfUsuariosIdUsuario = CursorUtil.getColumnIndexOrThrow(_cursor, "Usuarios_id_usuario");
@@ -201,6 +206,10 @@ public final class PublicacionDao_Impl implements PublicacionDao {
             _tmpFecha = _cursor.getLong(_cursorIndexOfFecha);
             final String _tmpDescripcion;
             _tmpDescripcion = _cursor.getString(_cursorIndexOfDescripcion);
+            final boolean _tmpOculta;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfOculta);
+            _tmpOculta = _tmp != 0;
             final Long _tmpFecha_baneo;
             if (_cursor.isNull(_cursorIndexOfFechaBaneo)) {
               _tmpFecha_baneo = null;
@@ -217,7 +226,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
             _tmpUsuarios_id_usuario = _cursor.getLong(_cursorIndexOfUsuariosIdUsuario);
             final long _tmpTema_id_tema;
             _tmpTema_id_tema = _cursor.getLong(_cursorIndexOfTemaIdTema);
-            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema);
+            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpOculta,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema);
             _result.add(_item);
           }
           return _result;
@@ -250,6 +259,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
           final int _cursorIndexOfTitulo = CursorUtil.getColumnIndexOrThrow(_cursor, "titulo");
           final int _cursorIndexOfFecha = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha");
           final int _cursorIndexOfDescripcion = CursorUtil.getColumnIndexOrThrow(_cursor, "descripcion");
+          final int _cursorIndexOfOculta = CursorUtil.getColumnIndexOrThrow(_cursor, "oculta");
           final int _cursorIndexOfFechaBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha_baneo");
           final int _cursorIndexOfMotivoBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "motivo_baneo");
           final int _cursorIndexOfUsuariosIdUsuario = CursorUtil.getColumnIndexOrThrow(_cursor, "Usuarios_id_usuario");
@@ -264,6 +274,10 @@ public final class PublicacionDao_Impl implements PublicacionDao {
             _tmpFecha = _cursor.getLong(_cursorIndexOfFecha);
             final String _tmpDescripcion;
             _tmpDescripcion = _cursor.getString(_cursorIndexOfDescripcion);
+            final boolean _tmpOculta;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfOculta);
+            _tmpOculta = _tmp != 0;
             final Long _tmpFecha_baneo;
             if (_cursor.isNull(_cursorIndexOfFechaBaneo)) {
               _tmpFecha_baneo = null;
@@ -280,7 +294,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
             _tmpUsuarios_id_usuario = _cursor.getLong(_cursorIndexOfUsuariosIdUsuario);
             final long _tmpTema_id_tema;
             _tmpTema_id_tema = _cursor.getLong(_cursorIndexOfTemaIdTema);
-            _result = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema);
+            _result = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpOculta,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema);
           } else {
             _result = null;
           }
@@ -309,6 +323,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
           final int _cursorIndexOfTitulo = CursorUtil.getColumnIndexOrThrow(_cursor, "titulo");
           final int _cursorIndexOfFecha = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha");
           final int _cursorIndexOfDescripcion = CursorUtil.getColumnIndexOrThrow(_cursor, "descripcion");
+          final int _cursorIndexOfOculta = CursorUtil.getColumnIndexOrThrow(_cursor, "oculta");
           final int _cursorIndexOfFechaBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha_baneo");
           final int _cursorIndexOfMotivoBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "motivo_baneo");
           final int _cursorIndexOfUsuariosIdUsuario = CursorUtil.getColumnIndexOrThrow(_cursor, "Usuarios_id_usuario");
@@ -324,6 +339,10 @@ public final class PublicacionDao_Impl implements PublicacionDao {
             _tmpFecha = _cursor.getLong(_cursorIndexOfFecha);
             final String _tmpDescripcion;
             _tmpDescripcion = _cursor.getString(_cursorIndexOfDescripcion);
+            final boolean _tmpOculta;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfOculta);
+            _tmpOculta = _tmp != 0;
             final Long _tmpFecha_baneo;
             if (_cursor.isNull(_cursorIndexOfFechaBaneo)) {
               _tmpFecha_baneo = null;
@@ -340,7 +359,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
             _tmpUsuarios_id_usuario = _cursor.getLong(_cursorIndexOfUsuariosIdUsuario);
             final long _tmpTema_id_tema;
             _tmpTema_id_tema = _cursor.getLong(_cursorIndexOfTemaIdTema);
-            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema);
+            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpOculta,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema);
             _result.add(_item);
           }
           return _result;
@@ -372,6 +391,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
           final int _cursorIndexOfTitulo = CursorUtil.getColumnIndexOrThrow(_cursor, "titulo");
           final int _cursorIndexOfFecha = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha");
           final int _cursorIndexOfDescripcion = CursorUtil.getColumnIndexOrThrow(_cursor, "descripcion");
+          final int _cursorIndexOfOculta = CursorUtil.getColumnIndexOrThrow(_cursor, "oculta");
           final int _cursorIndexOfFechaBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha_baneo");
           final int _cursorIndexOfMotivoBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "motivo_baneo");
           final int _cursorIndexOfUsuariosIdUsuario = CursorUtil.getColumnIndexOrThrow(_cursor, "Usuarios_id_usuario");
@@ -387,6 +407,10 @@ public final class PublicacionDao_Impl implements PublicacionDao {
             _tmpFecha = _cursor.getLong(_cursorIndexOfFecha);
             final String _tmpDescripcion;
             _tmpDescripcion = _cursor.getString(_cursorIndexOfDescripcion);
+            final boolean _tmpOculta;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfOculta);
+            _tmpOculta = _tmp != 0;
             final Long _tmpFecha_baneo;
             if (_cursor.isNull(_cursorIndexOfFechaBaneo)) {
               _tmpFecha_baneo = null;
@@ -403,7 +427,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
             _tmpUsuarios_id_usuario = _cursor.getLong(_cursorIndexOfUsuariosIdUsuario);
             final long _tmpTema_id_tema;
             _tmpTema_id_tema = _cursor.getLong(_cursorIndexOfTemaIdTema);
-            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema);
+            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpOculta,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema);
             _result.add(_item);
           }
           return _result;
@@ -437,6 +461,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
           final int _cursorIndexOfTitulo = CursorUtil.getColumnIndexOrThrow(_cursor, "titulo");
           final int _cursorIndexOfFecha = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha");
           final int _cursorIndexOfDescripcion = CursorUtil.getColumnIndexOrThrow(_cursor, "descripcion");
+          final int _cursorIndexOfOculta = CursorUtil.getColumnIndexOrThrow(_cursor, "oculta");
           final int _cursorIndexOfFechaBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "fecha_baneo");
           final int _cursorIndexOfMotivoBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "motivo_baneo");
           final int _cursorIndexOfUsuariosIdUsuario = CursorUtil.getColumnIndexOrThrow(_cursor, "Usuarios_id_usuario");
@@ -452,6 +477,10 @@ public final class PublicacionDao_Impl implements PublicacionDao {
             _tmpFecha = _cursor.getLong(_cursorIndexOfFecha);
             final String _tmpDescripcion;
             _tmpDescripcion = _cursor.getString(_cursorIndexOfDescripcion);
+            final boolean _tmpOculta;
+            final int _tmp;
+            _tmp = _cursor.getInt(_cursorIndexOfOculta);
+            _tmpOculta = _tmp != 0;
             final Long _tmpFecha_baneo;
             if (_cursor.isNull(_cursorIndexOfFechaBaneo)) {
               _tmpFecha_baneo = null;
@@ -468,7 +497,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
             _tmpUsuarios_id_usuario = _cursor.getLong(_cursorIndexOfUsuariosIdUsuario);
             final long _tmpTema_id_tema;
             _tmpTema_id_tema = _cursor.getLong(_cursorIndexOfTemaIdTema);
-            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema);
+            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpOculta,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema);
             _result.add(_item);
           }
           return _result;
