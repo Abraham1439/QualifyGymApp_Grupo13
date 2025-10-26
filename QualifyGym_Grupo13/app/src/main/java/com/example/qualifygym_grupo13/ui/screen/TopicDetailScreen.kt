@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,18 +13,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.qualifygym_grupo13.data.model.Publicacion
+import com.example.qualifygym_grupo13.data.model.Comentario
 import com.example.qualifygym_grupo13.data.model.Tema
-import com.example.qualifygym_grupo13.ui.components.PublicationCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopicDetailScreen(
     tema: Tema,
-    publicaciones: List<Publicacion>,
+    comentarios: List<Comentario>,
     onBackClick: () -> Unit,
-    onPublicationClick: (String) -> Unit,
-    onCreatePublicationClick: () -> Unit
+    onCommentClick: (String) -> Unit = {},
+    onCreateCommentClick: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -45,7 +43,7 @@ fun TopicDetailScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = onCreatePublicationClick,
+                onClick = onCreateCommentClick,
                 icon = { Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = null) },
                 text = { Text("Escribir Comentario") },
                 containerColor = MaterialTheme.colorScheme.primary
@@ -92,16 +90,16 @@ fun TopicDetailScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                         }
 
-                        // Número de publicaciones
+                        // Número de comentarios
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                Icons.AutoMirrored.Filled.Article,
-                                contentDescription = "Publicaciones",
+                                Icons.AutoMirrored.Filled.Comment,
+                                contentDescription = "Comentarios",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "${tema.numeroPublicaciones} publicaciones",
+                                text = "${tema.numeroComentarios} comentarios",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -134,24 +132,84 @@ fun TopicDetailScreen(
                 )
             }
 
-            // Sección de publicaciones
+            // Sección de comentarios
             item {
                 Text(
-                    text = "Publicaciones (${publicaciones.size})",
+                    text = "Comentarios (${comentarios.size})",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
             }
 
-            items(publicaciones) { publicacion ->
-                PublicationCard(
-                    publicacion = publicacion,
-                    onClick = { onPublicationClick(publicacion.id) }
+            items(comentarios) { comentario ->
+                CommentCard(
+                    comentario = comentario,
+                    onClick = { onCommentClick(comentario.id) }
                 )
             }
 
             // Espacio inferior
             item { Spacer(modifier = Modifier.height(16.dp)) }
+        }
+    }
+}
+
+// Componente para mostrar un comentario
+@Composable
+private fun CommentCard(
+    comentario: Comentario,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // Encabezado con autor y fecha
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Autor",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "por ${comentario.autor}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                
+                if (comentario.fecha.isNotEmpty()) {
+                    Text(
+                        text = comentario.fecha,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Contenido del comentario
+            Text(
+                text = comentario.contenido,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

@@ -40,7 +40,7 @@ fun SearchScreen(
                 nombre = temaEntity.nombre_tema,
                 descripcion = "Explora publicaciones sobre ${temaEntity.nombre_tema}",
                 ubicacion = "",
-                numeroPublicaciones = publicacionesDb.count { it.Tema_id_tema == temaEntity.id_tema }
+                numeroComentarios = publicacionesDb.count { it.Tema_id_tema == temaEntity.id_tema }
             )
         }.ifEmpty {
             // Datos de ejemplo solo si la BD está vacía
@@ -50,70 +50,70 @@ fun SearchScreen(
                 nombre = "Rutinas de Fuerza",
                 descripcion = "Gimnasio moderno con equipamiento de última generación y personal capacitado para rutinas de fuerza y musculación.",
                 ubicacion = "Las Condes, Av. Principal 123",
-                numeroPublicaciones = 156
+                numeroComentarios = 156
             ),
             Tema(
                 id = "2",
                 nombre = "Nutrición y Suplementos",
                 descripcion = "Centro especializado en nutrición deportiva y suplementación para optimizar tu rendimiento físico.",
                 ubicacion = "Providencia, Av. Libertador 456",
-                numeroPublicaciones = 89
+                numeroComentarios = 89
             ),
             Tema(
                 id = "3",
                 nombre = "Cardio y Resistencia",
                 descripcion = "Instalaciones equipadas con las mejores máquinas cardiovasculares y programas de entrenamiento de resistencia.",
                 ubicacion = "Ñuñoa, Av. Irarrázaval 789",
-                numeroPublicaciones = 67
+                numeroComentarios = 67
             ),
             Tema(
                 id = "4",
                 nombre = "CrossFit y Funcional",
                 descripcion = "Box especializado en entrenamiento funcional y CrossFit con coaches certificados.",
                 ubicacion = "Vitacura, Av. Kennedy 1234",
-                numeroPublicaciones = 120
+                numeroComentarios = 120
             ),
             Tema(
                 id = "5",
                 nombre = "Yoga y Pilates",
                 descripcion = "Estudio especializado en yoga, pilates y entrenamiento de flexibilidad.",
                 ubicacion = "Las Condes, Av. Apoquindo 567",
-                numeroPublicaciones = 95
+                numeroComentarios = 95
             ),
             Tema(
                 id = "6",
                 nombre = "Entrenamiento Personal",
                 descripcion = "Sesiones personalizadas de entrenamiento con profesionales certificados.",
                 ubicacion = "Providencia, Av. Suecia 890",
-                numeroPublicaciones = 78
+                numeroComentarios = 78
             ),
             Tema(
                 id = "7",
                 nombre = "Spinning y Ciclismo",
                 descripcion = "Clases de spinning indoor con música motivacional y entrenadores especializados.",
                 ubicacion = "Ñuñoa, Av. Grecia 345",
-                numeroPublicaciones = 54
+                numeroComentarios = 54
             ),
             Tema(
                 id = "8",
                 nombre = "Natación",
                 descripcion = "Clases de natación para todos los niveles con piscina climatizada.",
                 ubicacion = "La Reina, Av. Larraín 678",
-                numeroPublicaciones = 43
+                numeroComentarios = 43
             ),
             Tema(
                 id = "9",
                 nombre = "Boxeo y Artes Marciales",
                 descripcion = "Gimnasio especializado en boxeo, kickboxing y otras artes marciales.",
                 ubicacion = "Santiago Centro, Av. Matta 234",
-                numeroPublicaciones = 62
+                numeroComentarios = 62
             ),
             Tema(
                 id = "10",
                 nombre = "Recuperación y Fisioterapia",
                 descripcion = "Centro de recuperación física y fisioterapia deportiva.",
                 ubicacion = "Las Condes, Av. El Golf 456",
-                numeroPublicaciones = 38
+                numeroComentarios = 38
             )
         )}
     }
@@ -309,13 +309,13 @@ private fun SearchThemeCard(
                     }
                 }
                 
-                // Número de publicaciones
+                // Número de comentarios
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
                     shape = MaterialTheme.shapes.small
                 ) {
                     Text(
-                        text = "${tema.numeroPublicaciones} publicaciones",
+                        text = "${tema.numeroComentarios} comentarios",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)

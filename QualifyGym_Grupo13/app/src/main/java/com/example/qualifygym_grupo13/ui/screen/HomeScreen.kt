@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -41,7 +42,7 @@ fun HomeScreen(
                 nombre = temaEntity.nombre_tema,
                 descripcion = "Explora publicaciones sobre ${temaEntity.nombre_tema}",
                 ubicacion = "",
-                numeroPublicaciones = publicacionesDb.count { it.Tema_id_tema == temaEntity.id_tema }
+                numeroComentarios = publicacionesDb.count { it.Tema_id_tema == temaEntity.id_tema }
             )
         }
     }
@@ -262,14 +263,14 @@ fun TopicCard(tema: Tema, onClick: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Default.Article,
-                    contentDescription = "Publicaciones",
+                    Icons.AutoMirrored.Filled.Comment,
+                    contentDescription = "Comentarios",
                     modifier = Modifier.size(12.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "${tema.numeroPublicaciones}",
+                    text = "${tema.numeroComentarios}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

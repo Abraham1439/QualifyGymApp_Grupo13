@@ -286,53 +286,53 @@ fun AppNavGraph(
                 }
                 composable(Route.TopicDetail.path) { backStackEntry ->
                     val topicId = backStackEntry.arguments?.getString(Route.TopicDetail.ARG_TOPIC_ID) ?: ""
-                    // Datos de ejemplo para el tema y sus publicaciones
+                    // Datos de ejemplo para el tema y sus comentarios
                     val tema = when(topicId) {
                         "1" -> com.example.qualifygym_grupo13.data.model.Tema(
                             id = "1",
                             nombre = "Rutinas de Fuerza",
                             descripcion = "Gimnasio moderno con equipamiento de última generación y personal capacitado para rutinas de fuerza y musculación.",
                             ubicacion = "Las Condes, Av. Principal 123",
-                            numeroPublicaciones = 156
+                            numeroComentarios = 156
                         )
                         "2" -> com.example.qualifygym_grupo13.data.model.Tema(
                             id = "2",
                             nombre = "Nutrición y Suplementos",
                             descripcion = "Centro especializado en nutrición deportiva y suplementación para optimizar tu rendimiento físico.",
                             ubicacion = "Providencia, Av. Libertador 456",
-                            numeroPublicaciones = 89
+                            numeroComentarios = 89
                         )
                         "3" -> com.example.qualifygym_grupo13.data.model.Tema(
                             id = "3",
                             nombre = "Cardio y Resistencia",
                             descripcion = "Instalaciones equipadas con las mejores máquinas cardiovasculares y programas de entrenamiento de resistencia.",
                             ubicacion = "Ñuñoa, Av. Irarrázaval 789",
-                            numeroPublicaciones = 67
+                            numeroComentarios = 67
                         )
                         else -> com.example.qualifygym_grupo13.data.model.Tema(id = topicId, nombre = "Tema desconocido")
                     }
 
-                    val publicaciones = listOf(
-                        com.example.qualifygym_grupo13.data.model.Publicacion(
+                    val comentarios = listOf(
+                        com.example.qualifygym_grupo13.data.model.Comentario(
                             id = "101",
-                            titulo = "¿Mejor rutina para pecho?",
                             autor = "user123",
-                            contenido = "Llevo 3 meses entrenando pecho y no veo progreso significativo. ¿Alguien puede recomendarme una rutina efectiva?"
+                            contenido = "Llevo 3 meses entrenando pecho y no veo progreso significativo. ¿Alguien puede recomendarme una rutina efectiva?",
+                            fecha = "Hace 2 horas"
                         ),
-                        com.example.qualifygym_grupo13.data.model.Publicacion(
+                        com.example.qualifygym_grupo13.data.model.Comentario(
                             id = "102",
-                            titulo = "Opiniones sobre Creatina Monohidratada",
                             autor = "ana_fit",
-                            contenido = "¿Realmente funciona la creatina? ¿Qué marcas recomiendan? He leído opiniones muy divididas."
+                            contenido = "¿Realmente funciona la creatina? ¿Qué marcas recomiendan? He leído opiniones muy divididas.",
+                            fecha = "Hace 5 horas"
                         )
                     )
 
                     TopicDetailScreen(
                         tema = tema,
-                        publicaciones = publicaciones,
+                        comentarios = comentarios,
                         onBackClick = { navController.popBackStack() },
-                        onPublicationClick = { postId -> openPost(postId) },
-                        onCreatePublicationClick = { openWriteComment(topicId) }
+                        onCommentClick = { commentId -> /* Navegar al detalle del comentario si es necesario */ },
+                        onCreateCommentClick = { openWriteComment(topicId) }
                     )
                 }
                 composable(Route.WriteComment.path) { backStackEntry ->
@@ -344,21 +344,21 @@ fun AppNavGraph(
                             nombre = "Gym Power",
                             descripcion = "Gimnasio moderno con equipamiento de última generación y personal capacitado para rutinas de fuerza y musculación.",
                             ubicacion = "Av. Principal 123, Las Condes",
-                            numeroPublicaciones = 156
+                            numeroComentarios = 156
                         )
                         "2" -> com.example.qualifygym_grupo13.data.model.Tema(
                             id = "2",
                             nombre = "Fitness Co",
                             descripcion = "Centro especializado en nutrición deportiva y suplementación para optimizar tu rendimiento físico.",
                             ubicacion = "Av. Libertador 456, Providencia",
-                            numeroPublicaciones = 89
+                            numeroComentarios = 89
                         )
                         "3" -> com.example.qualifygym_grupo13.data.model.Tema(
                             id = "3",
                             nombre = "Cardio Center",
                             descripcion = "Instalaciones equipadas con las mejores máquinas cardiovasculares y programas de entrenamiento de resistencia.",
                             ubicacion = "Av. Irarrázaval 789, Ñuñoa",
-                            numeroPublicaciones = 67
+                            numeroComentarios = 67
                         )
                         else -> com.example.qualifygym_grupo13.data.model.Tema(id = topicId, nombre = "Tema desconocido")
                     }
@@ -381,21 +381,21 @@ fun AppNavGraph(
                             nombre = "¿Mejor rutina para pecho?",
                             descripcion = "Llevo 3 meses entrenando pecho y no veo progreso...",
                             ubicacion = "Rutinas de Fuerza",
-                            numeroPublicaciones = 156
+                            numeroComentarios = 156
                         )
                         postId.contains("102") || postId.contains("Creatina") -> com.example.qualifygym_grupo13.data.model.Tema(
                             id = "2",
                             nombre = "Opiniones sobre Creatina Monohidratada",
                             descripcion = "¿Realmente funciona la creatina?",
                             ubicacion = "Nutrición y Suplementos",
-                            numeroPublicaciones = 89
+                            numeroComentarios = 89
                         )
                         else -> com.example.qualifygym_grupo13.data.model.Tema(
                             id = postId,
                             nombre = "Publicación",
                             descripcion = "Comentando en publicación",
                             ubicacion = "Foro",
-                            numeroPublicaciones = 0
+                            numeroComentarios = 0
                         )
                     }
                     
