@@ -43,7 +43,7 @@ public final class TemaDao_Impl implements TemaDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR ABORT INTO `temas` (`id_tema`,`nombre_tema`,`Estado_id_estado`) VALUES (nullif(?, 0),?,?)";
+        return "INSERT OR IGNORE INTO `temas` (`id_tema`,`nombre_tema`,`Estado_id_estado`) VALUES (nullif(?, 0),?,?)";
       }
 
       @Override

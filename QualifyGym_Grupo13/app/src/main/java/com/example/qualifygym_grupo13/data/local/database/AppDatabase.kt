@@ -69,10 +69,8 @@ abstract class AppDatabase : RoomDatabase() {
                         
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)
-                            // Verificar y agregar datos si faltan (útil después de migraciones)
-                            CoroutineScope(Dispatchers.IO).launch {
-                                initializeDatabase(context)
-                            }
+                            // Solo verificar la integridad de la base de datos, no reinsertar datos
+                            // La inicialización solo debe ocurrir en onCreate
                         }
                     })
                     // En entorno educativo, si cambias versión sin migraciones, destruye y recrea.

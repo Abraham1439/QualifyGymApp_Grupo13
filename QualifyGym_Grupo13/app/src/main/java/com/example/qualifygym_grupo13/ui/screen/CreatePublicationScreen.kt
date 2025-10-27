@@ -91,7 +91,13 @@ fun CreatePublicationScreen(
     
     // Obtener usuario actual y temas desde ViewModels
     val currentUser by authViewModel?.currentUser?.collectAsState() ?: remember { mutableStateOf(null) }
-    val temas by publicacionViewModel?.allTemas?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
+    val temasRaw by publicacionViewModel?.allTemas?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
+    
+    // Filtrar temas duplicados por nombre (evita mostrar duplicados)
+    val temas = remember(temasRaw) {
+        temasRaw.distinctBy { it.nombre_tema }
+    }
+    
     val isLoading by publicacionViewModel?.isLoading?.collectAsState() ?: remember { mutableStateOf(false) }
     val errorMessage by publicacionViewModel?.errorMessage?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
     val successMessage by publicacionViewModel?.successMessage?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
