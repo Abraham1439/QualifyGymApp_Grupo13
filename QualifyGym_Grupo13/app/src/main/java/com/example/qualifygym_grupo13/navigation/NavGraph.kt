@@ -502,6 +502,8 @@ fun AppNavGraph(
                                 
                                 if (result.isSuccess) {
                                     Toast.makeText(context, "Comentario publicado exitosamente", Toast.LENGTH_SHORT).show()
+                                    // Esperar un momento para que Room actualice el Flow antes de volver
+                                    kotlinx.coroutines.delay(300)
                                     navController.popBackStack()
                                 } else {
                                     Toast.makeText(context, "Error al publicar comentario: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
