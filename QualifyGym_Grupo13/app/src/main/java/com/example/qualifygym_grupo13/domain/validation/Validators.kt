@@ -35,7 +35,7 @@ fun validateStrongPassword(pass: String): List<String> { //Se cambia esto para q
         return errors
     }
     if (pass.length < 8) {
-        errors.add("Debe teber mínimo 8 caracteres") // Largo mínimo
+        errors.add("Debe tener mínimo 8 caracteres") // Largo mínimo
     }
     if (!pass.any { it.isUpperCase() }) {
         errors.add("Debe incluir una mayúscula") // Al menos 1 mayúscula

@@ -126,7 +126,7 @@ private fun RegisterScreen(
                 onValueChange = onEmailChange,               // Notifica VM (valida)
                 label = { Text("Email") },                   // Etiqueta
                 singleLine = true,                           // Una línea
-                isError = passError.isNotEmpty(),            // Marca error
+                isError = emailError != null,                // Marca error
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email        // Teclado de email
                 ),

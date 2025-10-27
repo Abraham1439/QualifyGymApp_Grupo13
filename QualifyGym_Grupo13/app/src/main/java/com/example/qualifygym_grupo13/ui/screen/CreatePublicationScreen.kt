@@ -33,44 +33,19 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * Función para crear un archivo temporal donde se guardará la foto capturada por la cámara
- * @param context Contexto de la aplicación para acceder al directorio de caché
- * @return File objeto que representa el archivo temporal donde se guardará la imagen
- */
-private fun createTempImageFile(context: Context): File{
-    // Genera un timestamp único para evitar nombres de archivo duplicados
+private fun createTempImageFile(context: Context): File {
     val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-    
-    // Crea el directorio "images" dentro del caché de la aplicación
     val storageDir = File(context.cacheDir,"images").apply {
-        if(!exists()) mkdirs() // Crea la carpeta si no existe
+        if(!exists()) mkdirs()
     }
-    
-    // Retorna un archivo temporal con nombre único basado en el timestamp
-    return File(storageDir,"IMG_$timeStamp.jpg") // Archivo temporal en formato JPG
+    return File(storageDir,"IMG_$timeStamp.jpg")
 }
 
-/**
- * Función para convertir un archivo local en una URI segura usando FileProvider
- * Esto es necesario para compartir archivos con otras aplicaciones (como la cámara) de forma segura
- * @param context Contexto de la aplicación
- * @param file Archivo local que se quiere convertir a URI
- * @return Uri URI segura que puede ser compartida con otras aplicaciones
- */
 private fun getImageUriFile(context: Context, file: File): Uri {
-    // Construye la autoridad del FileProvider usando el package name de la app
     val authority = "${context.packageName}.fileprovider"
-    
-    // Convierte el archivo local en una URI segura usando FileProvider
     return FileProvider.getUriForFile(context, authority, file)
 }
 
-/**
- * Función para verificar si la aplicación tiene permisos de cámara
- * @param context Contexto de la aplicación
- * @return Boolean true si tiene permisos, false si no
- */
 private fun hasCameraPermission(context: Context): Boolean {
     return ContextCompat.checkSelfPermission(
         context,
@@ -89,43 +64,22 @@ fun CreatePublicationScreen(
     val (title, setTitle) = remember { mutableStateOf("") }
     val (desc, setDesc) = remember { mutableStateOf("") }
     
-    // Obtener usuario actual y temas desde ViewModels
     val currentUser by authViewModel?.currentUser?.collectAsState() ?: remember { mutableStateOf(null) }
     val temasRaw by publicacionViewModel?.allTemas?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
-    
-    // Filtrar temas duplicados por nombre (evita mostrar duplicados)
-    val temas = remember(temasRaw) {
-        temasRaw.distinctBy { it.nombre_tema }
-    }
-    
+    val temas = remember(temasRaw) { temasRaw.distinctBy { it.nombre_tema } }
     val isLoading by publicacionViewModel?.isLoading?.collectAsState() ?: remember { mutableStateOf(false) }
     val errorMessage by publicacionViewModel?.errorMessage?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
     val successMessage by publicacionViewModel?.successMessage?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
     
-    // Estado para el tema seleccionado
     var selectedTema by remember { mutableStateOf<com.example.qualifygym_grupo13.data.local.tema.TemaEntity?>(null) }
     var expanded by remember { mutableStateOf(false) }
-    
     val scope = rememberCoroutineScope()
 
-    // ==========================================================
-    // === LÓGICA DE CÁMARA - Configuración y Estados ===
-    // ==========================================================
-    val context = LocalContext.current // Obtiene el contexto de la aplicación actual
+    val context = LocalContext.current
     val imageStorageManager = remember { ImageStorageManager(context) }
-
-    // Estado persistente para guardar la URI de la foto como String
-    // Se mantiene durante cambios de configuración (rotación de pantalla, etc.)
     var photoUriString by rememberSaveable { mutableStateOf<String?>(null) }
-    
-    // Estado temporal para la URI antes de lanzar la cámara (no persistente)
-    // Se usa para pasar la URI a la aplicación de cámara
     var pendingCaptureUri by remember { mutableStateOf<Uri?>(null) }
-    
-    // Estado para controlar la visibilidad del diálogo de confirmación de borrado
     var showDeleteDialog by remember { mutableStateOf(false) }
-    
-    // Estado para controlar la visibilidad del diálogo de permisos de cámara
     var showPermissionDialog by remember { mutableStateOf(false) }
 
     // Launcher para la aplicación de cámara usando ActivityResultContracts

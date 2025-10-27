@@ -15,8 +15,6 @@ import com.example.qualifygym_grupo13.data.local.comentario.ComentarioDao;
 import com.example.qualifygym_grupo13.data.local.comentario.ComentarioDao_Impl;
 import com.example.qualifygym_grupo13.data.local.estado.EstadoDao;
 import com.example.qualifygym_grupo13.data.local.estado.EstadoDao_Impl;
-import com.example.qualifygym_grupo13.data.local.imagen.ImagenDao;
-import com.example.qualifygym_grupo13.data.local.imagen.ImagenDao_Impl;
 import com.example.qualifygym_grupo13.data.local.publicacion.PublicacionDao;
 import com.example.qualifygym_grupo13.data.local.publicacion.PublicacionDao_Impl;
 import com.example.qualifygym_grupo13.data.local.tema.TemaDao;
@@ -49,8 +47,6 @@ public final class AppDatabase_Impl extends AppDatabase {
 
   private volatile ComentarioDao _comentarioDao;
 
-  private volatile ImagenDao _imagenDao;
-
   @Override
   @NonNull
   protected SupportSQLiteOpenHelper createOpenHelper(@NonNull final DatabaseConfiguration config) {
@@ -67,11 +63,8 @@ public final class AppDatabase_Impl extends AppDatabase {
         db.execSQL("CREATE TABLE IF NOT EXISTS `comentarios` (`id_comentario` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `comentario` TEXT NOT NULL, `fecha_registro` INTEGER NOT NULL, `oculto` INTEGER NOT NULL, `fecha_baneo` INTEGER, `motivo_baneo` TEXT, `Usuarios_id_usuario` INTEGER NOT NULL, `Publicacion_id_publicacion` INTEGER NOT NULL, FOREIGN KEY(`Usuarios_id_usuario`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`Publicacion_id_publicacion`) REFERENCES `publicaciones`(`id_publicacion`) ON UPDATE NO ACTION ON DELETE CASCADE )");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_comentarios_Usuarios_id_usuario` ON `comentarios` (`Usuarios_id_usuario`)");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_comentarios_Publicacion_id_publicacion` ON `comentarios` (`Publicacion_id_publicacion`)");
-        db.execSQL("CREATE TABLE IF NOT EXISTS `imagenes` (`id_imagen` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nombre_imagen` TEXT NOT NULL, `imagen` BLOB NOT NULL, `Publicacion_id_publicacion` INTEGER NOT NULL, `Estado_id_estado` INTEGER NOT NULL, FOREIGN KEY(`Publicacion_id_publicacion`) REFERENCES `publicaciones`(`id_publicacion`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`Estado_id_estado`) REFERENCES `estados`(`id_estado`) ON UPDATE NO ACTION ON DELETE CASCADE )");
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_imagenes_Publicacion_id_publicacion` ON `imagenes` (`Publicacion_id_publicacion`)");
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_imagenes_Estado_id_estado` ON `imagenes` (`Estado_id_estado`)");
         db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)");
-        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '08c81f54c2de501edd12cd424d851e49')");
+        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ba635a659da5db70a9092f7839d131e4')");
       }
 
       @Override
@@ -81,7 +74,6 @@ public final class AppDatabase_Impl extends AppDatabase {
         db.execSQL("DROP TABLE IF EXISTS `temas`");
         db.execSQL("DROP TABLE IF EXISTS `publicaciones`");
         db.execSQL("DROP TABLE IF EXISTS `comentarios`");
-        db.execSQL("DROP TABLE IF EXISTS `imagenes`");
         final List<? extends RoomDatabase.Callback> _callbacks = mCallbacks;
         if (_callbacks != null) {
           for (RoomDatabase.Callback _callback : _callbacks) {
@@ -216,28 +208,9 @@ public final class AppDatabase_Impl extends AppDatabase {
                   + " Expected:\n" + _infoComentarios + "\n"
                   + " Found:\n" + _existingComentarios);
         }
-        final HashMap<String, TableInfo.Column> _columnsImagenes = new HashMap<String, TableInfo.Column>(5);
-        _columnsImagenes.put("id_imagen", new TableInfo.Column("id_imagen", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
-        _columnsImagenes.put("nombre_imagen", new TableInfo.Column("nombre_imagen", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
-        _columnsImagenes.put("imagen", new TableInfo.Column("imagen", "BLOB", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
-        _columnsImagenes.put("Publicacion_id_publicacion", new TableInfo.Column("Publicacion_id_publicacion", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
-        _columnsImagenes.put("Estado_id_estado", new TableInfo.Column("Estado_id_estado", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
-        final HashSet<TableInfo.ForeignKey> _foreignKeysImagenes = new HashSet<TableInfo.ForeignKey>(2);
-        _foreignKeysImagenes.add(new TableInfo.ForeignKey("publicaciones", "CASCADE", "NO ACTION", Arrays.asList("Publicacion_id_publicacion"), Arrays.asList("id_publicacion")));
-        _foreignKeysImagenes.add(new TableInfo.ForeignKey("estados", "CASCADE", "NO ACTION", Arrays.asList("Estado_id_estado"), Arrays.asList("id_estado")));
-        final HashSet<TableInfo.Index> _indicesImagenes = new HashSet<TableInfo.Index>(2);
-        _indicesImagenes.add(new TableInfo.Index("index_imagenes_Publicacion_id_publicacion", false, Arrays.asList("Publicacion_id_publicacion"), Arrays.asList("ASC")));
-        _indicesImagenes.add(new TableInfo.Index("index_imagenes_Estado_id_estado", false, Arrays.asList("Estado_id_estado"), Arrays.asList("ASC")));
-        final TableInfo _infoImagenes = new TableInfo("imagenes", _columnsImagenes, _foreignKeysImagenes, _indicesImagenes);
-        final TableInfo _existingImagenes = TableInfo.read(db, "imagenes");
-        if (!_infoImagenes.equals(_existingImagenes)) {
-          return new RoomOpenHelper.ValidationResult(false, "imagenes(com.example.qualifygym_grupo13.data.local.imagen.ImagenEntity).\n"
-                  + " Expected:\n" + _infoImagenes + "\n"
-                  + " Found:\n" + _existingImagenes);
-        }
         return new RoomOpenHelper.ValidationResult(true, null);
       }
-    }, "08c81f54c2de501edd12cd424d851e49", "dd457b80322e2bcb7c7dfdb0c14ab667");
+    }, "ba635a659da5db70a9092f7839d131e4", "083d9f44162aed189a6f70c7ca235641");
     final SupportSQLiteOpenHelper.Configuration _sqliteConfig = SupportSQLiteOpenHelper.Configuration.builder(config.context).name(config.name).callback(_openCallback).build();
     final SupportSQLiteOpenHelper _helper = config.sqliteOpenHelperFactory.create(_sqliteConfig);
     return _helper;
@@ -248,7 +221,7 @@ public final class AppDatabase_Impl extends AppDatabase {
   protected InvalidationTracker createInvalidationTracker() {
     final HashMap<String, String> _shadowTablesMap = new HashMap<String, String>(0);
     final HashMap<String, Set<String>> _viewTables = new HashMap<String, Set<String>>(0);
-    return new InvalidationTracker(this, _shadowTablesMap, _viewTables, "users","estados","temas","publicaciones","comentarios","imagenes");
+    return new InvalidationTracker(this, _shadowTablesMap, _viewTables, "users","estados","temas","publicaciones","comentarios");
   }
 
   @Override
@@ -269,7 +242,6 @@ public final class AppDatabase_Impl extends AppDatabase {
       _db.execSQL("DELETE FROM `temas`");
       _db.execSQL("DELETE FROM `publicaciones`");
       _db.execSQL("DELETE FROM `comentarios`");
-      _db.execSQL("DELETE FROM `imagenes`");
       super.setTransactionSuccessful();
     } finally {
       super.endTransaction();
@@ -292,7 +264,6 @@ public final class AppDatabase_Impl extends AppDatabase {
     _typeConvertersMap.put(TemaDao.class, TemaDao_Impl.getRequiredConverters());
     _typeConvertersMap.put(PublicacionDao.class, PublicacionDao_Impl.getRequiredConverters());
     _typeConvertersMap.put(ComentarioDao.class, ComentarioDao_Impl.getRequiredConverters());
-    _typeConvertersMap.put(ImagenDao.class, ImagenDao_Impl.getRequiredConverters());
     return _typeConvertersMap;
   }
 
@@ -377,20 +348,6 @@ public final class AppDatabase_Impl extends AppDatabase {
           _comentarioDao = new ComentarioDao_Impl(this);
         }
         return _comentarioDao;
-      }
-    }
-  }
-
-  @Override
-  public ImagenDao imagenDao() {
-    if (_imagenDao != null) {
-      return _imagenDao;
-    } else {
-      synchronized(this) {
-        if(_imagenDao == null) {
-          _imagenDao = new ImagenDao_Impl(this);
-        }
-        return _imagenDao;
       }
     }
   }

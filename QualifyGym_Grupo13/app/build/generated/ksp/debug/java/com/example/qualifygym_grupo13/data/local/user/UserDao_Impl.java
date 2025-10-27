@@ -43,7 +43,7 @@ public final class UserDao_Impl implements UserDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR ABORT INTO `users` (`id`,`name`,`email`,`phone`,`password`,`isAdmin`,`photoUrl`) VALUES (nullif(?, 0),?,?,?,?,?,?)";
+        return "INSERT OR IGNORE INTO `users` (`id`,`name`,`email`,`phone`,`password`,`isAdmin`,`photoUrl`) VALUES (nullif(?, 0),?,?,?,?,?,?)";
       }
 
       @Override

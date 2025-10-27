@@ -9,8 +9,8 @@ import androidx.room.Update
 @Dao
 interface UserDao {
 
-    // Inserta un usuario. ABORT si hay conflicto de PK (no de email; ese lo controlamos a mano).
-    @Insert(onConflict = OnConflictStrategy.ABORT)
+    // Inserta un usuario. IGNORE si hay conflicto para evitar crashes.
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(user: UserEntity): Long
 
     // Devuelve un usuario por email (o null si no existe).
