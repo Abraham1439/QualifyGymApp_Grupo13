@@ -17,12 +17,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +38,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.viewModelScope
 import coil.compose.rememberAsyncImagePainter
 import com.example.qualifygym_grupo13.data.model.Publicacion
+import com.example.qualifygym_grupo13.data.storage.ImageStorageManager
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 import java.io.File
@@ -51,11 +54,25 @@ fun ProfileScreen(
     onChangePassword: () -> Unit,
     onHelpAndSupport: () -> Unit,
     onLogout: () -> Unit,
-    onPublicationClick: (String) -> Unit // Para ver el detalle de una publicación
+    onPublicationClick: (String) -> Unit, // Para ver el detalle de una publicación
+    // ViewModels
+    authViewModel: AuthViewModel,
+    publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel
 ) {
     // Estado para saber qué pestaña está seleccionada (0 = Reseñas, 1 = Configuración)
     var selectedTabIndex by remember { mutableStateOf(0) }
-    val tabs = listOf("Mis Reseñas", "Configuración")
+    val tabs = listOf("Mis publicaciones", "Configuración")
+    
+    // Obtener el usuario actual y sus publicaciones
+    val currentUser by authViewModel.currentUser.collectAsState()
+    val userPublicaciones by publicacionViewModel.userPublicaciones.collectAsState()
+    
+    // Cargar publicaciones del usuario cuando se monta el componente
+    LaunchedEffect(currentUser?.id) {
+        currentUser?.id?.let { userId ->
+            publicacionViewModel.loadUserPublicaciones(userId)
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // 1. Cabecera con nombre y email (la crearemos en el siguiente paso)
@@ -80,7 +97,11 @@ fun ProfileScreen(
 
         // 3. Contenido dinámico según la pestaña (lo crearemos en el siguiente paso)
         when (selectedTabIndex) {
-            0 -> MyReviewsContent(onPublicationClick = onPublicationClick)
+            0 -> MyReviewsContent(
+                userPublicaciones = userPublicaciones,
+                isAdmin = currentUser?.isAdmin == true,
+                onPublicationClick = onPublicationClick
+            )
             1 -> SettingsContent(
                 onEditProfile = onEditProfile,
                 onChangePassword = onChangePassword,
@@ -108,22 +129,80 @@ private fun ProfileHeader(name: String, email: String) {
 }
 
 @Composable
-private fun MyReviewsContent(onPublicationClick: (String) -> Unit) {
-    // Datos de ejemplo. En una app real, vendrían del ViewModel.
-    val userPosts = remember {
-        listOf(
-            Publicacion("201", "Excelente Gimnasio", "tú", "Muy buen equipamiento y personal atento..."),
-            Publicacion("202", "Buen Entrenador", "tú", "Muy profesional y conocedor del tema...")
+private fun MyReviewsContent(
+    userPublicaciones: List<com.example.qualifygym_grupo13.data.local.publicacion.PublicacionEntity>,
+    isAdmin: Boolean,
+    onPublicationClick: (String) -> Unit
+) {
+    val context = LocalContext.current
+    val db = com.example.qualifygym_grupo13.data.local.database.AppDatabase.getInstance(context)
+    
+    // Filtrar publicaciones: Si es admin, ver todas. Si no, solo las no ocultas
+    val publicacionesFiltradas = if (isAdmin) {
+        userPublicaciones
+    } else {
+        userPublicaciones.filter { !it.oculta }
+    }
+    
+    // Mapa para almacenar los nombres de autores
+    var autoresMap by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
+    
+    // Cargar los nombres de los autores
+    LaunchedEffect(publicacionesFiltradas) {
+        val userIds = publicacionesFiltradas.map { it.Usuarios_id_usuario }.distinct()
+        val namesMap = mutableMapOf<Long, String>()
+        
+        userIds.forEach { userId ->
+            val user = db.userDao().getById(userId)
+            namesMap[userId] = user?.name ?: "Usuario"
+        }
+        
+        autoresMap = namesMap
+    }
+    
+    // Convertir PublicacionEntity a Publicacion (modelo de UI)
+    val publicacionesUI = publicacionesFiltradas.map { entity ->
+        Publicacion(
+            id = entity.id_publicacion.toString(),
+            titulo = entity.titulo,
+            autor = "tú",
+            contenido = entity.descripcion
         )
     }
 
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(userPosts) { post ->
-            // Reutilizamos el card de la HomeScreen para consistencia
-            PublicationCard(publicacion = post, onClick = { onPublicationClick(post.id) })
+    if (publicacionesUI.isEmpty()) {
+        // Mostrar mensaje cuando no hay publicaciones
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Article,
+                    contentDescription = "Sin publicaciones",
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No has creado publicaciones aún",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    } else {
+        LazyColumn(
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(publicacionesUI) { post ->
+                // Reutilizamos el card de la HomeScreen para consistencia
+                PublicationCard(publicacion = post, onClick = { onPublicationClick(post.id) })
+            }
         }
     }
 }
@@ -214,6 +293,10 @@ fun EditProfileScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val imageStorageManager = remember { ImageStorageManager(context) }
+    
+    // Obtener usuario actual del ViewModel para cargar su foto
+    val currentUser = authViewModel?.currentUser?.collectAsState()?.value
     
     // Estados para los campos del formulario
     var name by remember { mutableStateOf(currentName) }
@@ -221,6 +304,13 @@ fun EditProfileScreen(
     var email by remember { mutableStateOf(currentEmail) }
     var gender by remember { mutableStateOf(currentGender) }
     var photoUri by remember { mutableStateOf<Uri?>(currentPhotoUri) }
+    
+    // Cargar la foto guardada del usuario al iniciar
+    LaunchedEffect(currentUser?.photoUrl) {
+        if (currentPhotoUri == null && currentUser?.photoUrl != null) {
+            photoUri = imageStorageManager.pathToUri(currentUser.photoUrl)
+        }
+    }
     
     // Estados para manejo de errores y carga
     var emailError by remember { mutableStateOf<String?>(null) }
@@ -514,7 +604,33 @@ fun EditProfileScreen(
                         scope.launch {
                             isLoading = true
                             
+                            // 1. Guardar la foto de perfil si hay una nueva
+                            var savedPhotoPath: String? = currentUser?.photoUrl // Mantener la actual
+                            
+                            // Solo guardar nueva foto si se cambió (es diferente a la actual)
+                            if (photoUri != null && photoUri != imageStorageManager.pathToUri(currentUser?.photoUrl)) {
+                                val newPhotoPath = imageStorageManager.saveProfileImage(
+                                    photoUri!!,
+                                    currentUser?.id ?: 0L
+                                )
+                                
+                                if (newPhotoPath != null) {
+                                    // Si se guardó exitosamente, usar la nueva ruta
+                                    savedPhotoPath = newPhotoPath
+                                } else {
+                                    errorMessage = "Error al guardar la foto de perfil"
+                                    isLoading = false
+                                    return@launch
+                                }
+                            }
+                            
+                            // 2. Actualizar información del perfil
                             val result = authViewModel?.updateUserProfile(name, email, phone)
+                            
+                            // 3. Actualizar foto de perfil en la base de datos
+                            if (result?.isSuccess == true && savedPhotoPath != currentUser?.photoUrl) {
+                                authViewModel.updateUserProfilePhoto(savedPhotoPath)
+                            }
                             
                             isLoading = false
                             

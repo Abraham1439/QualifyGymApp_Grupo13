@@ -58,7 +58,8 @@ class PublicacionViewModel(
         titulo: String,
         descripcion: String,
         userId: Long,
-        temaId: Long
+        temaId: Long,
+        imageUrl: String? = null
     ): Result<Long> {
         _isLoading.value = true
         _errorMessage.value = null
@@ -68,7 +69,8 @@ class PublicacionViewModel(
             titulo = titulo,
             descripcion = descripcion,
             userId = userId,
-            temaId = temaId
+            temaId = temaId,
+            imageUrl = imageUrl
         )
 
         _isLoading.value = false
@@ -80,6 +82,13 @@ class PublicacionViewModel(
         }
 
         return result
+    }
+    
+    // Actualizar la imagen de una publicación
+    suspend fun updatePublicacionImage(publicacionId: Long, imageUrl: String?) {
+        viewModelScope.launch {
+            publicacionRepository.updatePublicacionImage(publicacionId, imageUrl)
+        }
     }
 
     // Obtener publicaciones de un usuario específico

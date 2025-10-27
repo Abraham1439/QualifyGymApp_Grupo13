@@ -27,6 +27,7 @@ import androidx.core.content.FileProvider
 import androidx.core.content.PermissionChecker
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.qualifygym_grupo13.data.storage.ImageStorageManager
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -105,6 +106,7 @@ fun CreatePublicationScreen(
     // === LÓGICA DE CÁMARA - Configuración y Estados ===
     // ==========================================================
     val context = LocalContext.current // Obtiene el contexto de la aplicación actual
+    val imageStorageManager = remember { ImageStorageManager(context) }
 
     // Estado persistente para guardar la URI de la foto como String
     // Se mantiene durante cambios de configuración (rotación de pantalla, etc.)
@@ -405,14 +407,37 @@ fun CreatePublicationScreen(
                     scope.launch {
                         publicacionViewModel?.clearMessages()
                         
+                        // Crear primero la publicación SIN imagen para obtener el ID
                         val result = publicacionViewModel?.createPublicacion(
                             titulo = title,
                             descripcion = desc,
                             userId = currentUser!!.id,
-                            temaId = selectedTema!!.id_tema
+                            temaId = selectedTema!!.id_tema,
+                            imageUrl = null // Primero sin imagen
                         )
                         
                         if (result?.isSuccess == true) {
+                            val publicacionId = result.getOrNull()
+                            
+                            // Si hay una imagen seleccionada, guardarla
+                            if (photoUriString != null && publicacionId != null) {
+                                try {
+                                    val photoUri = Uri.parse(photoUriString)
+                                    val savedImagePath = imageStorageManager.savePublicationImage(
+                                        photoUri,
+                                        publicacionId
+                                    )
+                                    
+                                    if (savedImagePath != null) {
+                                        // Actualizar la publicación con la ruta de la imagen
+                                        publicacionViewModel.updatePublicacionImage(publicacionId, savedImagePath)
+                                    }
+                                } catch (e: Exception) {
+                                    // Si falla al guardar la imagen, continuar de todos modos
+                                    e.printStackTrace()
+                                }
+                            }
+                            
                             Toast.makeText(context, "Publicación creada exitosamente", Toast.LENGTH_SHORT).show()
                             kotlinx.coroutines.delay(1000)
                             onPublished()

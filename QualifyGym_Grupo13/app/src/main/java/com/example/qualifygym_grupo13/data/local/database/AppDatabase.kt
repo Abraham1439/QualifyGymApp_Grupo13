@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
         ComentarioEntity::class,
         ImagenEntity::class
     ],
-    version = 3,
+    version = 5,
     exportSchema = true // Mantener true para inspección de esquema (útil en educación)
 )
 abstract class AppDatabase : RoomDatabase() {

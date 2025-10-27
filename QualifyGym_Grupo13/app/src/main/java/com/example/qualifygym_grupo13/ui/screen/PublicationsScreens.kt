@@ -19,12 +19,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.example.qualifygym_grupo13.data.local.database.AppDatabase
 import com.example.qualifygym_grupo13.data.model.Publicacion
+import com.example.qualifygym_grupo13.data.storage.ImageStorageManager
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -35,6 +39,7 @@ import java.util.Locale
 fun PublicationsListScreen(
     topicId: String,
     publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel? = null,
+    authViewModel: com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel? = null,
     onOpenPost: (String) -> Unit,
     onBack: () -> Unit,
     onCreateNew: () -> Unit = {}
@@ -44,6 +49,7 @@ fun PublicationsListScreen(
     
     // Obtener publicaciones del tema desde la base de datos
     val publicacionesDb by publicacionViewModel?.allPublicaciones?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
+    val currentUser by authViewModel?.currentUser?.collectAsState() ?: remember { mutableStateOf(null) }
     
     // Obtener el nombre del tema
     var temaNombre by remember { mutableStateOf("Publicaciones") }
@@ -56,9 +62,13 @@ fun PublicationsListScreen(
         }
     }
     
-    // Filtrar publicaciones por tema y que no estén ocultas
+    // Filtrar publicaciones por tema y por visibilidad
     val publicacionesFiltradas = publicacionesDb.filter { 
-        it.Tema_id_tema == topicId.toLongOrNull() && !it.oculta 
+        val esMismoTema = it.Tema_id_tema == topicId.toLongOrNull()
+        val esAdmin = currentUser?.isAdmin == true
+        
+        // Si es admin, ver todas del tema. Si no, solo las no ocultas
+        esMismoTema && (esAdmin || !it.oculta)
     }
     
     // Cargar nombres de autores
@@ -177,6 +187,7 @@ fun PublicationDetailScreen(
     val context = LocalContext.current
     val db = AppDatabase.getInstance(context)
     val scope = rememberCoroutineScope()
+    val imageStorageManager = remember { ImageStorageManager(context) }
     
     // Estados para la publicación y comentarios
     var publicacion by remember { mutableStateOf<com.example.qualifygym_grupo13.data.local.publicacion.PublicacionEntity?>(null) }
@@ -314,13 +325,43 @@ fun PublicationDetailScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Top
                     ) {
-                        Text(
-                            text = publicacion!!.titulo,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f)
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = publicacion!!.titulo,
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            
+                            // Indicador de publicación oculta (solo visible para admin)
+                            if (currentUser?.isAdmin == true && publicacion!!.oculta) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Surface(
+                                    shape = MaterialTheme.shapes.small,
+                                    color = MaterialTheme.colorScheme.errorContainer,
+                                    tonalElevation = 2.dp
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.VisibilityOff,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                        Text(
+                                            text = "Publicación oculta",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onErrorContainer,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                            }
+                        }
                         
                         // Menú de administrador (solo visible para admins)
                         if (currentUser?.isAdmin == true) {
@@ -445,6 +486,28 @@ fun PublicationDetailScreen(
                             modifier = Modifier.padding(16.dp),
                             color = MaterialTheme.colorScheme.onSurface
                         )
+                    }
+                }
+                
+                // Imagen de la publicación (si existe)
+                if (publicacion?.imageUrl != null) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            AsyncImage(
+                                model = imageStorageManager.pathToUri(publicacion!!.imageUrl),
+                                contentDescription = "Imagen de la publicación",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 400.dp)
+                                    .clip(MaterialTheme.shapes.medium),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
                     }
                 }
                 

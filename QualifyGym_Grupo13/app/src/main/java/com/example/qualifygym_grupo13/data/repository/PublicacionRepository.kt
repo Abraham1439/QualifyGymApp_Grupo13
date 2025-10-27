@@ -23,7 +23,8 @@ class PublicacionRepository(private val publicacionDao: PublicacionDao) {
         titulo: String,
         descripcion: String,
         userId: Long,
-        temaId: Long
+        temaId: Long,
+        imageUrl: String? = null
     ): Result<Long> {
         return try {
             val publicacion = PublicacionEntity(
@@ -31,10 +32,26 @@ class PublicacionRepository(private val publicacionDao: PublicacionDao) {
                 fecha = System.currentTimeMillis(),
                 descripcion = descripcion,
                 Usuarios_id_usuario = userId,
-                Tema_id_tema = temaId
+                Tema_id_tema = temaId,
+                imageUrl = imageUrl
             )
             val id = publicacionDao.insert(publicacion)
             Result.success(id)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun updatePublicacionImage(publicacionId: Long, imageUrl: String?): Result<Unit> {
+        return try {
+            val publicacion = publicacionDao.getById(publicacionId)
+            if (publicacion != null) {
+                val updatedPublicacion = publicacion.copy(imageUrl = imageUrl)
+                publicacionDao.update(updatedPublicacion)
+                Result.success(Unit)
+            } else {
+                Result.failure(IllegalArgumentException("Publicación no encontrada"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

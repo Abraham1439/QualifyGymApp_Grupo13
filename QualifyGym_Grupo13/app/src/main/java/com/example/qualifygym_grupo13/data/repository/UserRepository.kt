@@ -93,4 +93,17 @@ class UserRepository(
         return Result.success(updatedUser)
     }
 
+    // Actualizar foto de perfil
+    suspend fun updateProfilePhoto(userId: Long, photoPath: String?): Result<UserEntity> {
+        val currentUser = userDao.getById(userId)
+        if (currentUser == null) {
+            return Result.failure(IllegalArgumentException("Usuario no encontrado"))
+        }
+        
+        val updatedUser = currentUser.copy(photoUrl = photoPath)
+        userDao.update(updatedUser)
+        
+        return Result.success(updatedUser)
+    }
+
 }

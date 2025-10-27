@@ -35,6 +35,7 @@ data class PublicacionEntity(
     val fecha_baneo: Long? = null,
     val motivo_baneo: String? = null,
     val Usuarios_id_usuario: Long,
-    val Tema_id_tema: Long
+    val Tema_id_tema: Long,
+    val imageUrl: String? = null        // Path de la imagen de la publicación
 )
 

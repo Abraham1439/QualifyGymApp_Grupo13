@@ -46,7 +46,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR ABORT INTO `publicaciones` (`id_publicacion`,`titulo`,`fecha`,`descripcion`,`oculta`,`fecha_baneo`,`motivo_baneo`,`Usuarios_id_usuario`,`Tema_id_tema`) VALUES (nullif(?, 0),?,?,?,?,?,?,?,?)";
+        return "INSERT OR ABORT INTO `publicaciones` (`id_publicacion`,`titulo`,`fecha`,`descripcion`,`oculta`,`fecha_baneo`,`motivo_baneo`,`Usuarios_id_usuario`,`Tema_id_tema`,`imageUrl`) VALUES (nullif(?, 0),?,?,?,?,?,?,?,?,?)";
       }
 
       @Override
@@ -70,13 +70,18 @@ public final class PublicacionDao_Impl implements PublicacionDao {
         }
         statement.bindLong(8, entity.getUsuarios_id_usuario());
         statement.bindLong(9, entity.getTema_id_tema());
+        if (entity.getImageUrl() == null) {
+          statement.bindNull(10);
+        } else {
+          statement.bindString(10, entity.getImageUrl());
+        }
       }
     };
     this.__updateAdapterOfPublicacionEntity = new EntityDeletionOrUpdateAdapter<PublicacionEntity>(__db) {
       @Override
       @NonNull
       protected String createQuery() {
-        return "UPDATE OR ABORT `publicaciones` SET `id_publicacion` = ?,`titulo` = ?,`fecha` = ?,`descripcion` = ?,`oculta` = ?,`fecha_baneo` = ?,`motivo_baneo` = ?,`Usuarios_id_usuario` = ?,`Tema_id_tema` = ? WHERE `id_publicacion` = ?";
+        return "UPDATE OR ABORT `publicaciones` SET `id_publicacion` = ?,`titulo` = ?,`fecha` = ?,`descripcion` = ?,`oculta` = ?,`fecha_baneo` = ?,`motivo_baneo` = ?,`Usuarios_id_usuario` = ?,`Tema_id_tema` = ?,`imageUrl` = ? WHERE `id_publicacion` = ?";
       }
 
       @Override
@@ -100,7 +105,12 @@ public final class PublicacionDao_Impl implements PublicacionDao {
         }
         statement.bindLong(8, entity.getUsuarios_id_usuario());
         statement.bindLong(9, entity.getTema_id_tema());
-        statement.bindLong(10, entity.getId_publicacion());
+        if (entity.getImageUrl() == null) {
+          statement.bindNull(10);
+        } else {
+          statement.bindString(10, entity.getImageUrl());
+        }
+        statement.bindLong(11, entity.getId_publicacion());
       }
     };
     this.__preparedStmtOfDeleteById = new SharedSQLiteStatement(__db) {
@@ -195,6 +205,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
           final int _cursorIndexOfMotivoBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "motivo_baneo");
           final int _cursorIndexOfUsuariosIdUsuario = CursorUtil.getColumnIndexOrThrow(_cursor, "Usuarios_id_usuario");
           final int _cursorIndexOfTemaIdTema = CursorUtil.getColumnIndexOrThrow(_cursor, "Tema_id_tema");
+          final int _cursorIndexOfImageUrl = CursorUtil.getColumnIndexOrThrow(_cursor, "imageUrl");
           final List<PublicacionEntity> _result = new ArrayList<PublicacionEntity>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final PublicacionEntity _item;
@@ -226,7 +237,13 @@ public final class PublicacionDao_Impl implements PublicacionDao {
             _tmpUsuarios_id_usuario = _cursor.getLong(_cursorIndexOfUsuariosIdUsuario);
             final long _tmpTema_id_tema;
             _tmpTema_id_tema = _cursor.getLong(_cursorIndexOfTemaIdTema);
-            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpOculta,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema);
+            final String _tmpImageUrl;
+            if (_cursor.isNull(_cursorIndexOfImageUrl)) {
+              _tmpImageUrl = null;
+            } else {
+              _tmpImageUrl = _cursor.getString(_cursorIndexOfImageUrl);
+            }
+            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpOculta,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema,_tmpImageUrl);
             _result.add(_item);
           }
           return _result;
@@ -264,6 +281,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
           final int _cursorIndexOfMotivoBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "motivo_baneo");
           final int _cursorIndexOfUsuariosIdUsuario = CursorUtil.getColumnIndexOrThrow(_cursor, "Usuarios_id_usuario");
           final int _cursorIndexOfTemaIdTema = CursorUtil.getColumnIndexOrThrow(_cursor, "Tema_id_tema");
+          final int _cursorIndexOfImageUrl = CursorUtil.getColumnIndexOrThrow(_cursor, "imageUrl");
           final PublicacionEntity _result;
           if (_cursor.moveToFirst()) {
             final long _tmpId_publicacion;
@@ -294,7 +312,13 @@ public final class PublicacionDao_Impl implements PublicacionDao {
             _tmpUsuarios_id_usuario = _cursor.getLong(_cursorIndexOfUsuariosIdUsuario);
             final long _tmpTema_id_tema;
             _tmpTema_id_tema = _cursor.getLong(_cursorIndexOfTemaIdTema);
-            _result = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpOculta,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema);
+            final String _tmpImageUrl;
+            if (_cursor.isNull(_cursorIndexOfImageUrl)) {
+              _tmpImageUrl = null;
+            } else {
+              _tmpImageUrl = _cursor.getString(_cursorIndexOfImageUrl);
+            }
+            _result = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpOculta,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema,_tmpImageUrl);
           } else {
             _result = null;
           }
@@ -328,6 +352,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
           final int _cursorIndexOfMotivoBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "motivo_baneo");
           final int _cursorIndexOfUsuariosIdUsuario = CursorUtil.getColumnIndexOrThrow(_cursor, "Usuarios_id_usuario");
           final int _cursorIndexOfTemaIdTema = CursorUtil.getColumnIndexOrThrow(_cursor, "Tema_id_tema");
+          final int _cursorIndexOfImageUrl = CursorUtil.getColumnIndexOrThrow(_cursor, "imageUrl");
           final List<PublicacionEntity> _result = new ArrayList<PublicacionEntity>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final PublicacionEntity _item;
@@ -359,7 +384,13 @@ public final class PublicacionDao_Impl implements PublicacionDao {
             _tmpUsuarios_id_usuario = _cursor.getLong(_cursorIndexOfUsuariosIdUsuario);
             final long _tmpTema_id_tema;
             _tmpTema_id_tema = _cursor.getLong(_cursorIndexOfTemaIdTema);
-            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpOculta,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema);
+            final String _tmpImageUrl;
+            if (_cursor.isNull(_cursorIndexOfImageUrl)) {
+              _tmpImageUrl = null;
+            } else {
+              _tmpImageUrl = _cursor.getString(_cursorIndexOfImageUrl);
+            }
+            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpOculta,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema,_tmpImageUrl);
             _result.add(_item);
           }
           return _result;
@@ -396,6 +427,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
           final int _cursorIndexOfMotivoBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "motivo_baneo");
           final int _cursorIndexOfUsuariosIdUsuario = CursorUtil.getColumnIndexOrThrow(_cursor, "Usuarios_id_usuario");
           final int _cursorIndexOfTemaIdTema = CursorUtil.getColumnIndexOrThrow(_cursor, "Tema_id_tema");
+          final int _cursorIndexOfImageUrl = CursorUtil.getColumnIndexOrThrow(_cursor, "imageUrl");
           final List<PublicacionEntity> _result = new ArrayList<PublicacionEntity>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final PublicacionEntity _item;
@@ -427,7 +459,13 @@ public final class PublicacionDao_Impl implements PublicacionDao {
             _tmpUsuarios_id_usuario = _cursor.getLong(_cursorIndexOfUsuariosIdUsuario);
             final long _tmpTema_id_tema;
             _tmpTema_id_tema = _cursor.getLong(_cursorIndexOfTemaIdTema);
-            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpOculta,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema);
+            final String _tmpImageUrl;
+            if (_cursor.isNull(_cursorIndexOfImageUrl)) {
+              _tmpImageUrl = null;
+            } else {
+              _tmpImageUrl = _cursor.getString(_cursorIndexOfImageUrl);
+            }
+            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpOculta,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema,_tmpImageUrl);
             _result.add(_item);
           }
           return _result;
@@ -466,6 +504,7 @@ public final class PublicacionDao_Impl implements PublicacionDao {
           final int _cursorIndexOfMotivoBaneo = CursorUtil.getColumnIndexOrThrow(_cursor, "motivo_baneo");
           final int _cursorIndexOfUsuariosIdUsuario = CursorUtil.getColumnIndexOrThrow(_cursor, "Usuarios_id_usuario");
           final int _cursorIndexOfTemaIdTema = CursorUtil.getColumnIndexOrThrow(_cursor, "Tema_id_tema");
+          final int _cursorIndexOfImageUrl = CursorUtil.getColumnIndexOrThrow(_cursor, "imageUrl");
           final List<PublicacionEntity> _result = new ArrayList<PublicacionEntity>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final PublicacionEntity _item;
@@ -497,7 +536,13 @@ public final class PublicacionDao_Impl implements PublicacionDao {
             _tmpUsuarios_id_usuario = _cursor.getLong(_cursorIndexOfUsuariosIdUsuario);
             final long _tmpTema_id_tema;
             _tmpTema_id_tema = _cursor.getLong(_cursorIndexOfTemaIdTema);
-            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpOculta,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema);
+            final String _tmpImageUrl;
+            if (_cursor.isNull(_cursorIndexOfImageUrl)) {
+              _tmpImageUrl = null;
+            } else {
+              _tmpImageUrl = _cursor.getString(_cursorIndexOfImageUrl);
+            }
+            _item = new PublicacionEntity(_tmpId_publicacion,_tmpTitulo,_tmpFecha,_tmpDescripcion,_tmpOculta,_tmpFecha_baneo,_tmpMotivo_baneo,_tmpUsuarios_id_usuario,_tmpTema_id_tema,_tmpImageUrl);
             _result.add(_item);
           }
           return _result;

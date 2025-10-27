@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -33,22 +34,32 @@ fun HomeScreen(
     // Obtener datos reales de la base de datos
     val publicacionesDb by publicacionViewModel?.allPublicaciones?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
     val temasDb by publicacionViewModel?.allTemas?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
+    val currentUser by authViewModel?.currentUser?.collectAsState() ?: remember { mutableStateOf(null) }
+    
+    // Filtrar publicaciones: mostrar ocultas solo si es admin
+    val publicacionesFiltradas = remember(publicacionesDb, currentUser) {
+        if (currentUser?.isAdmin == true) {
+            publicacionesDb // El admin ve todas las publicaciones
+        } else {
+            publicacionesDb.filter { !it.oculta } // Los usuarios normales solo ven las no ocultas
+        }
+    }
     
     // Convertir datos de BD a modelos de UI
-    val sampleThemes = remember(temasDb) {
+    val sampleThemes = remember(temasDb, publicacionesFiltradas) {
         temasDb.map { temaEntity ->
             Tema(
                 id = temaEntity.id_tema.toString(),
                 nombre = temaEntity.nombre_tema,
                 descripcion = "Explora publicaciones sobre ${temaEntity.nombre_tema}",
                 ubicacion = "",
-                numeroComentarios = publicacionesDb.count { it.Tema_id_tema == temaEntity.id_tema }
+                numeroComentarios = publicacionesFiltradas.count { it.Tema_id_tema == temaEntity.id_tema && !it.oculta }
             )
         }
     }
     
-    val samplePosts = remember(publicacionesDb) {
-        publicacionesDb.take(10).map { pubEntity ->
+    val samplePosts = remember(publicacionesFiltradas) {
+        publicacionesFiltradas.take(10).map { pubEntity ->
             Publicacion(
                 id = pubEntity.id_publicacion.toString(),
                 titulo = pubEntity.titulo,
@@ -124,7 +135,7 @@ fun HomeScreen(
 
             // --- SECCIÓN DE ÚLTIMAS PUBLICACIONES ---
             item {
-                SectionTitle(text = "Últimas Publicaciones", icon = Icons.Default.Article)
+                SectionTitle(text = "Últimas Publicaciones", icon = Icons.AutoMirrored.Filled.Article)
             }
             items(samplePosts) { post ->
                 PublicationCard(publicacion = post, onClick = { onPublicationClick(post.id) })

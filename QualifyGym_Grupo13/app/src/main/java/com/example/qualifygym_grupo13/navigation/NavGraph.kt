@@ -42,6 +42,7 @@ import com.example.qualifygym_grupo13.ui.screen.ChangePasswordScreen
 import com.example.qualifygym_grupo13.ui.screen.LoginScreenVm
 import com.example.qualifygym_grupo13.ui.screen.RegisterScreenVm
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel
+import com.example.qualifygym_grupo13.data.storage.ImageStorageManager
 import kotlinx.coroutines.launch
 
 @Composable
@@ -100,6 +101,8 @@ fun AppNavGraph(
         drawerContent = { // Contenido del drawer (menú)
             // Obtener usuario actual del ViewModel
             val currentUserDrawer by authViewModel.currentUser.collectAsState()
+            val context = LocalContext.current
+            val imageStorageManager = remember { ImageStorageManager(context) }
             
             AppDrawer( // Nuestro componente Drawer
                 currentRoute = currentRoute, // Ruta actual
@@ -123,7 +126,7 @@ fun AppNavGraph(
                 ),
                 userName = currentUserDrawer?.name ?: "Usuario Demo",
                 userEmail = currentUserDrawer?.email ?: "usuario@demo.com",
-                userPhotoUri = null
+                userPhotoUri = imageStorageManager.pathToUri(currentUserDrawer?.photoUrl)
             )
         }
     ) {
@@ -235,6 +238,7 @@ fun AppNavGraph(
                     PublicationsListScreen(
                         topicId = topicId,
                         publicacionViewModel = publicacionViewModel,
+                        authViewModel = authViewModel,
                         onOpenPost = openPost,
                         onBack = { navController.popBackStack() }
                     )
@@ -292,7 +296,9 @@ fun AppNavGraph(
                                     inclusive = true
                                 }
                             }
-                        }
+                        },
+                        authViewModel = authViewModel,
+                        publicacionViewModel = publicacionViewModel
                     )
                 }
                 composable(Route.EditProfile.path) {
