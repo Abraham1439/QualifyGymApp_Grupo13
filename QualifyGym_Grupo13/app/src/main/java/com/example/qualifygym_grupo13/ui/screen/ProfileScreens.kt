@@ -40,6 +40,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.qualifygym_grupo13.data.model.Publicacion
 import com.example.qualifygym_grupo13.data.storage.ImageStorageManager
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel
+import com.example.qualifygym_grupo13.domain.validation.validateNameLettersOnly
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -214,6 +215,7 @@ private fun SettingsContent(
     onHelpAndSupport: () -> Unit,
     onLogout: () -> Unit
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -241,7 +243,10 @@ private fun SettingsContent(
 
         // Botón de Cerrar Sesión
         Button(
-            onClick = onLogout,
+            onClick = {
+                //Toast para notificar cierre de sesión en configuracion
+                Toast.makeText(context, "Se cerro session correctamente,", Toast.LENGTH_SHORT).show()
+                onLogout()},
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error
@@ -313,14 +318,11 @@ fun EditProfileScreen(
     }
     
     // Estados para manejo de errores y carga
+    var nameError by remember { mutableStateOf<String?>(null) }
     var emailError by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var successMessage by remember { mutableStateOf<String?>(null) }
-    
-    // Estado para mostrar el menú de género
-    var genderMenuExpanded by remember { mutableStateOf(false) }
-    val genderOptions = listOf("Masculino", "Femenino", "Otro", "Prefiero no decir")
+
     
     // Estado para el diálogo de selección de foto
     var showPhotoDialog by remember { mutableStateOf(false) }
@@ -485,13 +487,28 @@ fun EditProfileScreen(
             // Campo: Nombre completo
             OutlinedTextField(
                 value = name,
-                onValueChange = { name = it },
+                onValueChange = { newValue ->
+                    // Filtrar solo letras y espacios (igual que en el registro)
+                    val filtered = newValue.filter { it.isLetter() || it.isWhitespace() }
+                    name = filtered
+                    // Validar usando la función de validación
+                    nameError = validateNameLettersOnly(filtered)
+                },
                 label = { Text("Nombre completo") },
                 leadingIcon = {
                     Icon(Icons.Default.Person, contentDescription = null)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                isError = nameError != null,
+                supportingText = {
+                    if (nameError != null) {
+                        Text(
+                            text = nameError!!,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
             )
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -554,24 +571,6 @@ fun EditProfileScreen(
                 }
             }
             
-            // Mostrar mensaje de éxito si existe
-            if (successMessage != null) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF4CAF50).copy(alpha = 0.2f)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = successMessage!!,
-                        color = Color(0xFF1B5E20),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
-            }
-            
             // Botones de acción
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -591,8 +590,15 @@ fun EditProfileScreen(
                     onClick = {
                         // Limpiar mensajes anteriores
                         errorMessage = null
-                        successMessage = null
                         emailError = null
+                        nameError = null
+                        
+                        // Validar nombre antes de guardar
+                        nameError = validateNameLettersOnly(name)
+                        if (nameError != null) {
+                            errorMessage = "Por favor corrige los errores en el formulario"
+                            return@Button
+                        }
                         
                         // Validar que los campos no estén vacíos
                         if (name.isBlank() || email.isBlank() || phone.isBlank()) {
@@ -635,9 +641,8 @@ fun EditProfileScreen(
                             isLoading = false
                             
                             if (result?.isSuccess == true) {
-                                successMessage = "Perfil actualizado correctamente"
-                                // Esperar un momento para que el usuario vea el mensaje
-                                kotlinx.coroutines.delay(1500)
+                                // Mostrar Toast de éxito
+                                Toast.makeText(context, "Perfil actualizado correctamente", Toast.LENGTH_SHORT).show()
                                 onSaved(name, phone, email, gender, photoUri)
                             } else {
                                 val errorMsg = result?.exceptionOrNull()?.message ?: "Error al actualizar el perfil"

@@ -1,6 +1,7 @@
 package com.example.qualifygym_grupo13.ui.components
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector // Tipo de ícono
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
@@ -40,6 +42,7 @@ fun AppDrawer(
     userEmail: String = "usuario@demo.com",
     userPhotoUri: Uri? = null
 ) {
+    val context = LocalContext.current
     ModalDrawerSheet( // Hoja que contiene el contenido del drawer
         modifier = modifier // Modificador encadenable
     ) {
@@ -118,7 +121,10 @@ fun AppDrawer(
             NavigationDrawerItem(
                 label = { Text(logoutItem.label) },
                 selected = false,
-                onClick = logoutItem.onClick,
+                onClick = {
+                    //Toast para notificar cierre de sesión en el menu de hamburguesa
+                    Toast.makeText(context, "Se cerro session correctamente", Toast.LENGTH_SHORT).show()
+                    logoutItem.onClick()},
                 icon = { Icon(logoutItem.icon, contentDescription = logoutItem.label) },
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 colors = NavigationDrawerItemDefaults.colors(
