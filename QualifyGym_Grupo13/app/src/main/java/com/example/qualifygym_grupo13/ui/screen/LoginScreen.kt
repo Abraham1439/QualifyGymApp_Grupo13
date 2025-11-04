@@ -1,6 +1,7 @@
 package com.example.qualifygym_grupo13.ui.screen
 
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background                 // Fondo
 import androidx.compose.foundation.layout.*                   // Box/Column/Row/Spacer
@@ -19,11 +20,10 @@ import androidx.compose.ui.text.input.*                       // KeyboardOptions
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp                            // DPs
 import androidx.lifecycle.compose.collectAsStateWithLifecycle // Observa StateFlow con lifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel         // Obtiene ViewModel
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel         // Nuestro ViewModel
 import com.example.qualifygym_grupo13.R
-import com.example.qualifygym_grupo13.navigation.Route
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalContext
 
 //1 Lo primero que creamos en el archivo
 @Composable
@@ -34,10 +34,17 @@ fun LoginScreenVm(                  // Pantalla Login conectada al VM
 ) {
 
     val state by vm.login.collectAsStateWithLifecycle()      // Observa el StateFlow en tiempo real
+    val currentUser by vm.currentUser.collectAsStateWithLifecycle() // Observa el usuario actual
+    val context = LocalContext.current
 
-    if (state.success) {                                     // Si login fue exitoso…
-        vm.clearLoginResult()                                // Limpia banderas
-        onLoginOkNavigateHome()                              // Navega a Home
+    // Mostrar Toast cuando el login sea exitoso
+    LaunchedEffect(state.success, currentUser) {
+        if (state.success && currentUser != null) {
+            val userName = currentUser?.name ?: "Usuario" // Obtener nombre del usuario o usar "Usuario" como fallback
+            Toast.makeText(context, "Inicio de sesión exitoso, Bienvenido $userName", Toast.LENGTH_SHORT).show()
+            vm.clearLoginResult()                                // Limpia banderas
+            onLoginOkNavigateHome()                              // Navega a Home
+        }
     }
 
     LoginScreen(                                             // Delegamos a UI presentacional
