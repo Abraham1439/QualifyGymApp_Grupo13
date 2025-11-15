@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- AGREGADO: Permiso para usar Internet -->
+    <!-- Línea nueva 1: habilita tráfico de red para llamar APIs REST -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Permisos necesarios para la funcionalidad de cámara -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
