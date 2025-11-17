@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Home // Ícono Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search // Ícono Buscar
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield // Ícono Panel de Admin
 import androidx.compose.material3.* // Material3
 import androidx.compose.runtime.Composable // Marcador composable
 import androidx.compose.ui.Alignment
@@ -145,10 +146,21 @@ fun defaultDrawerItems(
     onHome: () -> Unit,        // Acción Home
     onSearch: () -> Unit,      // Acción Buscar
     onSettings: () -> Unit,    // Acción Configuración
-    onLogout: () -> Unit       // Acción Cerrar Sesión
-): List<DrawerItem> = listOf(
-    DrawerItem("Inicio", Icons.Filled.Home, onHome),                         // Ítem Home
-    DrawerItem("Buscar", Icons.Filled.Search, onSearch),                     // Ítem Buscar
-    DrawerItem("Configuración", Icons.Filled.Settings, onSettings),          // Ítem Configuración
-    DrawerItem("Cerrar Sesión", Icons.AutoMirrored.Filled.ExitToApp, onLogout) // Ítem Cerrar Sesión
-)
+    onLogout: () -> Unit,      // Acción Cerrar Sesión
+    onAdminDashboard: (() -> Unit)? = null // Acción Panel de Admin (opcional, solo para admins)
+): List<DrawerItem> {
+    val items = mutableListOf<DrawerItem>()
+    
+    items.add(DrawerItem("Inicio", Icons.Filled.Home, onHome))                         // Ítem Home
+    items.add(DrawerItem("Buscar", Icons.Filled.Search, onSearch))                     // Ítem Buscar
+    
+    // Agregar ítem de admin solo si se proporciona el callback
+    onAdminDashboard?.let {
+        items.add(DrawerItem("Ir a panel de admin", Icons.Filled.Shield, it)) // Ítem Panel de Admin
+    }
+    
+    items.add(DrawerItem("Configuración", Icons.Filled.Settings, onSettings))          // Ítem Configuración
+    items.add(DrawerItem("Cerrar Sesión", Icons.AutoMirrored.Filled.ExitToApp, onLogout)) // Ítem Cerrar Sesión
+    
+    return items
+}

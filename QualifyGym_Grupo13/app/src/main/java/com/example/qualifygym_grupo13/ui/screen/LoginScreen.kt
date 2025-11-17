@@ -29,7 +29,8 @@ import androidx.compose.ui.platform.LocalContext
 @Composable
 fun LoginScreenVm(                  // Pantalla Login conectada al VM
     vm: AuthViewModel,                            // MOD: recibimos el VM desde NavGraph
-    onLoginOkNavigateHome: () -> Unit,                       // Navega a Home cuando el login es exitoso
+    onLoginOkNavigateHome: () -> Unit,                       // Navega a Home cuando el login es exitoso (usuario normal)
+    onLoginOkNavigateAdmin: () -> Unit,                     // Navega a AdminDashboard cuando el login es exitoso (admin)
     onGoRegister: () -> Unit                                 // Navega a Registro
 ) {
 
@@ -43,7 +44,12 @@ fun LoginScreenVm(                  // Pantalla Login conectada al VM
             val userName = currentUser?.name ?: "Usuario" // Obtener nombre del usuario o usar "Usuario" como fallback
             Toast.makeText(context, "Inicio de sesión exitoso, Bienvenido $userName", Toast.LENGTH_SHORT).show()
             vm.clearLoginResult()                                // Limpia banderas
-            onLoginOkNavigateHome()                              // Navega a Home
+            // Navegar según el rol del usuario: admin va a AdminDashboard, usuario normal a Home
+            if (currentUser?.isAdmin == true) {
+                onLoginOkNavigateAdmin()                        // Navega a AdminDashboard si es admin
+            } else {
+                onLoginOkNavigateHome()                         // Navega a Home si es usuario normal
+            }
         }
     }
 

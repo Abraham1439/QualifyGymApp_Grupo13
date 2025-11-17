@@ -69,6 +69,7 @@ fun AppNavGraph(
 
     // Helpers de navegación (reutilizamos en topbar/drawer/botones)
     val goHome: () -> Unit    = { navController.navigate(Route.Home.path) }    // Ir a Home
+    val goAdminDashboard: () -> Unit = { navController.navigate(Route.AdminDashboard.path) } // Ir a AdminDashboard
     val goLogin: () -> Unit   = { navController.navigate(Route.Login.path) }   // Ir a Login
     val goRegister: () -> Unit = { navController.navigate(Route.Register.path) } // Ir a Registro
     val goForgot: () -> Unit = { navController.navigate(Route.Forgot.path) } // Ir a recuperar
@@ -122,7 +123,14 @@ fun AppNavGraph(
                     onLogout = {
                         scope.launch { drawerState.close() } // Cierra drawer
                         logout() // Cierra sesión
-                    }
+                    },
+                    // Solo mostrar botón de admin si el usuario es administrador
+                    onAdminDashboard = if (currentUserDrawer?.isAdmin == true) {
+                        {
+                            scope.launch { drawerState.close() } // Cierra drawer
+                            goAdminDashboard() // Navega a AdminDashboard
+                        }
+                    } else null
                 ),
                 userName = currentUserDrawer?.name ?: "Usuario Demo",
                 userEmail = currentUserDrawer?.email ?: "usuario@demo.com",
@@ -164,9 +172,17 @@ fun AppNavGraph(
                         if (!isCheckingSession) {
                             // Si ya terminó de verificar
                             if (currentUser != null) {
-                                // Si hay usuario logueado, ir a Home
-                                navController.navigate(Route.Home.path) {
-                                    popUpTo(Route.Splash.path) { inclusive = true }
+                                // Si hay usuario logueado, verificar si es admin
+                                if (currentUser?.isAdmin == true) {
+                                    // Si es admin, ir a AdminDashboard
+                                    navController.navigate(Route.AdminDashboard.path) {
+                                        popUpTo(Route.Splash.path) { inclusive = true }
+                                    }
+                                } else {
+                                    // Si es usuario normal, ir a Home
+                                    navController.navigate(Route.Home.path) {
+                                        popUpTo(Route.Splash.path) { inclusive = true }
+                                    }
                                 }
                             } else {
                                 // Si no hay usuario, ir a Login
@@ -214,7 +230,8 @@ fun AppNavGraph(
                     // Usamos la versión con ViewModel (LoginScreenVm) para formularios/validación en tiempo real
                     LoginScreenVm(
                         vm = authViewModel,            // <-- NUEVO: pasamos VM inyectado
-                        onLoginOkNavigateHome = goHome,            // Si el VM marca success=true, navegamos a Home
+                        onLoginOkNavigateHome = goHome,            // Si el VM marca success=true, navegamos a Home (usuario normal)
+                        onLoginOkNavigateAdmin = goAdminDashboard, // Si el VM marca success=true, navegamos a AdminDashboard (admin)
                         onGoRegister = goRegister                  // Enlace para ir a la pantalla de Registro
                     )
                 }
