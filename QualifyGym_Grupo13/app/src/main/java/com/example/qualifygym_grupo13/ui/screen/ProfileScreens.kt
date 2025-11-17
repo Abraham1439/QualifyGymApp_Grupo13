@@ -41,6 +41,8 @@ import com.example.qualifygym_grupo13.data.model.Publicacion
 import com.example.qualifygym_grupo13.data.storage.ImageStorageManager
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel
 import com.example.qualifygym_grupo13.domain.validation.validateNameLettersOnly
+import com.example.qualifygym_grupo13.domain.validation.validateEmail
+import com.example.qualifygym_grupo13.domain.validation.validatePhoneDigitsOnly
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -320,6 +322,7 @@ fun EditProfileScreen(
     // Estados para manejo de errores y carga
     var nameError by remember { mutableStateOf<String?>(null) }
     var emailError by remember { mutableStateOf<String?>(null) }
+    var phoneError by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -516,13 +519,28 @@ fun EditProfileScreen(
             // Campo: Teléfono
             OutlinedTextField(
                 value = phone,
-                onValueChange = { phone = it },
+                onValueChange = { newValue ->
+                    // Filtrar solo dígitos (igual que en el registro)
+                    val digitsOnly = newValue.filter { it.isDigit() }
+                    phone = digitsOnly
+                    // Validar usando la función de validación
+                    phoneError = validatePhoneDigitsOnly(digitsOnly)
+                },
                 label = { Text("Teléfono") },
                 leadingIcon = {
                     Icon(Icons.Default.Phone, contentDescription = null)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                isError = phoneError != null,
+                supportingText = {
+                    if (phoneError != null) {
+                        Text(
+                            text = phoneError!!,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
             )
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -530,9 +548,10 @@ fun EditProfileScreen(
             // Campo: Correo electrónico
             OutlinedTextField(
                 value = email,
-                onValueChange = { 
-                    email = it
-                    emailError = null  // Limpiar error al cambiar el texto
+                onValueChange = { newValue ->
+                    email = newValue
+                    // Validar usando la función de validación
+                    emailError = validateEmail(newValue)
                 },
                 label = { Text("Correo electrónico") },
                 leadingIcon = {
@@ -590,19 +609,15 @@ fun EditProfileScreen(
                     onClick = {
                         // Limpiar mensajes anteriores
                         errorMessage = null
-                        emailError = null
-                        nameError = null
                         
-                        // Validar nombre antes de guardar
+                        // Validar todos los campos antes de guardar
                         nameError = validateNameLettersOnly(name)
-                        if (nameError != null) {
-                            errorMessage = "Por favor corrige los errores en el formulario"
-                            return@Button
-                        }
+                        emailError = validateEmail(email)
+                        phoneError = validatePhoneDigitsOnly(phone)
                         
-                        // Validar que los campos no estén vacíos
-                        if (name.isBlank() || email.isBlank() || phone.isBlank()) {
-                            errorMessage = "Todos los campos son obligatorios"
+                        // Si hay algún error, mostrar mensaje y no guardar
+                        if (nameError != null || emailError != null || phoneError != null) {
+                            errorMessage = "Por favor corrige los errores en el formulario"
                             return@Button
                         }
                         
