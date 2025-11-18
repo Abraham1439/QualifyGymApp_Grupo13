@@ -9,8 +9,8 @@ import kotlinx.coroutines.flow.update                      // Helper para actual
 import kotlinx.coroutines.launch                            // Lanzar corrutinas
 import com.example.qualifygym_grupo13.domain.validation.*             // Importamos las funciones de validación
 
-// 1.- 🔁 NUEVO: importamos el repositorio real que habla con Room/SQLite
-import com.example.qualifygym_grupo13.data.repository.UserRepository
+// 1.- 🔁 NUEVO: importamos el repositorio que habla con las APIs
+import com.example.qualifygym_grupo13.data.repository.UsuarioRepository
 import com.example.qualifygym_grupo13.data.local.user.UserEntity
 import com.example.qualifygym_grupo13.data.preferences.SessionManager
 
@@ -51,8 +51,8 @@ data class RegisterUiState(                                // Estado de la panta
 //2.- Eliminamos la estructura de DemoUser
 
 class AuthViewModel(
-    //NUEVO: 4.- inyectamos el repositorio real que usa Room/SQLite
-    private val repository: UserRepository,
+    //NUEVO: 4.- inyectamos el repositorio que usa APIs
+    private val repository: UsuarioRepository,
     // Gestor de sesión para persistencia simple
     private val sessionManager: SessionManager
 ) : ViewModel() {                         // ViewModel que maneja Login/Registro
@@ -240,15 +240,21 @@ class AuthViewModel(
         }
     }
 
-    // Actualizar perfil del usuario
-    suspend fun updateUserProfile(name: String, email: String, phone: String): Result<UserEntity> {
+    // Actualizar perfil del usuario (requiere contraseña actual para validar)
+    suspend fun updateUserProfile(name: String, email: String, phone: String, currentPassword: String? = null): Result<UserEntity> {
         val user = _currentUser.value
         return if (user != null) {
+            // Si no se proporciona contraseña, retornar error
+            if (currentPassword == null || currentPassword.isBlank()) {
+                return Result.failure(IllegalArgumentException("Se requiere la contraseña actual para actualizar el perfil"))
+            }
+            
             val result = repository.updateProfile(
                 userId = user.id,
                 newName = name.trim(),
                 newEmail = email.trim(),
-                newPhone = phone.trim()
+                newPhone = phone.trim(),
+                currentPassword = currentPassword
             )
             
             // Si la actualización fue exitosa, actualizar el usuario actual en el ViewModel

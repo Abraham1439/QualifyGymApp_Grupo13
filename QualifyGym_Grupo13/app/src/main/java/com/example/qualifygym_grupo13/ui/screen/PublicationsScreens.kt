@@ -26,8 +26,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.qualifygym_grupo13.data.local.database.AppDatabase
 import com.example.qualifygym_grupo13.data.model.Publicacion
+import com.example.qualifygym_grupo13.data.repository.UsuarioRepository
 import com.example.qualifygym_grupo13.data.storage.ImageStorageManager
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -45,7 +45,7 @@ fun PublicationsListScreen(
     onCreateNew: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val db = AppDatabase.getInstance(context)
+    val usuarioRepository = remember { UsuarioRepository() }
     
     // Obtener publicaciones del tema desde la base de datos
     val publicacionesDb by publicacionViewModel?.allPublicaciones?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
@@ -53,12 +53,15 @@ fun PublicationsListScreen(
     
     // Obtener el nombre del tema
     var temaNombre by remember { mutableStateOf("Publicaciones") }
+    val scope = rememberCoroutineScope()
     
     LaunchedEffect(topicId) {
         val temaId = topicId.toLongOrNull()
         if (temaId != null) {
-            val tema = db.temaDao().getById(temaId)
-            temaNombre = tema?.nombre_tema ?: "Publicaciones"
+            scope.launch {
+                val tema = publicacionViewModel?.getTemaById(temaId)
+                temaNombre = tema?.nombre_tema ?: "Publicaciones"
+            }
         }
     }
     
@@ -79,8 +82,11 @@ fun PublicationsListScreen(
         val namesMap = mutableMapOf<Long, String>()
         
         userIds.forEach { userId ->
-            val user = db.userDao().getById(userId)
-            namesMap[userId] = user?.name ?: "Usuario"
+            scope.launch {
+                val userResult = usuarioRepository.fetchUsuarioById(userId)
+                val userName = userResult.getOrNull()?.username ?: "Usuario"
+                namesMap[userId] = userName
+            }
         }
         
         autoresMap = namesMap
@@ -185,7 +191,7 @@ fun PublicationDetailScreen(
 ) {
     val currentUser by authViewModel?.currentUser?.collectAsState() ?: remember { mutableStateOf(null) }
     val context = LocalContext.current
-    val db = AppDatabase.getInstance(context)
+    val usuarioRepository = remember { UsuarioRepository() }
     val scope = rememberCoroutineScope()
     val imageStorageManager = remember { ImageStorageManager(context) }
     
@@ -212,8 +218,10 @@ fun PublicationDetailScreen(
                 
                 // Obtener nombre del autor de la publicación
                 publicacion?.let { pub ->
-                    val user = db.userDao().getById(pub.Usuarios_id_usuario)
-                    autorName = user?.name ?: "Usuario"
+                    scope.launch {
+                        val userResult = usuarioRepository.fetchUsuarioById(pub.Usuarios_id_usuario)
+                        autorName = userResult.getOrNull()?.username ?: "Usuario"
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -226,15 +234,17 @@ fun PublicationDetailScreen(
     // Cargar nombres de todos los usuarios que comentaron (solo cuando cambian los comentarios)
     LaunchedEffect(comentariosDb) {
         if (comentariosDb.isNotEmpty()) {
-            val userIds = comentariosDb.map { it.Usuarios_id_usuario }.distinct()
+            val userIds = comentariosDb.map { comentario -> comentario.Usuarios_id_usuario }.distinct()
             val namesMap = mutableMapOf<Long, String>()
             
-            userIds.forEach { userId ->
-                val user = db.userDao().getById(userId)
-                namesMap[userId] = user?.name ?: "Usuario"
+            scope.launch {
+                userIds.forEach { userId ->
+                    val userResult = usuarioRepository.fetchUsuarioById(userId)
+                    namesMap[userId] = userResult.getOrNull()?.username ?: "Usuario"
+                }
+                
+                userNamesMap = namesMap
             }
-            
-            userNamesMap = namesMap
         }
     }
     
@@ -383,10 +393,13 @@ fun PublicationDetailScreen(
                                         onClick = {
                                             scope.launch {
                                                 publicacion?.let { pub ->
-                                                    val updatedPub = pub.copy(oculta = true)
-                                                    db.publicacionDao().update(updatedPub)
-                                                    Toast.makeText(context, "Publicación ocultada", Toast.LENGTH_SHORT).show()
-                                                    onPublicationHidden()
+                                                    val result = publicacionViewModel?.ocultarPublicacion(pub.id_publicacion, "Ocultada por administrador")
+                                                    result?.onSuccess {
+                                                        Toast.makeText(context, "Publicación ocultada", Toast.LENGTH_SHORT).show()
+                                                        onPublicationHidden()
+                                                    }?.onFailure {
+                                                        Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
+                                                    }
                                                 }
                                             }
                                             showAdminMenu = false
@@ -403,9 +416,12 @@ fun PublicationDetailScreen(
                                         onClick = {
                                             scope.launch {
                                                 publicacion?.let { pub ->
-                                                    val updatedPub = pub.copy(oculta = false)
-                                                    db.publicacionDao().update(updatedPub)
-                                                    Toast.makeText(context, "Publicación mostrada", Toast.LENGTH_SHORT).show()
+                                                    val result = publicacionViewModel?.mostrarPublicacion(pub.id_publicacion)
+                                                    result?.onSuccess {
+                                                        Toast.makeText(context, "Publicación mostrada", Toast.LENGTH_SHORT).show()
+                                                    }?.onFailure {
+                                                        Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
+                                                    }
                                                 }
                                             }
                                             showAdminMenu = false
@@ -423,7 +439,7 @@ fun PublicationDetailScreen(
                                         onClick = {
                                             scope.launch {
                                                 publicacion?.let { pub ->
-                                                    db.publicacionDao().deleteById(pub.id_publicacion)
+                                                    publicacionViewModel?.deletePublicacion(pub.id_publicacion)
                                                     Toast.makeText(context, "Publicación eliminada", Toast.LENGTH_SHORT).show()
                                                     onPublicationDeleted()
                                                 }

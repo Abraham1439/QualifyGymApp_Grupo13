@@ -3,6 +3,7 @@ package com.example.qualifygym_grupo13.data.remote
 import com.example.qualifygym_grupo13.data.remote.dto.LoginRequestDto
 import com.example.qualifygym_grupo13.data.remote.dto.UsuarioCreateDto
 import com.example.qualifygym_grupo13.data.remote.dto.UsuarioDto
+import com.example.qualifygym_grupo13.data.remote.dto.UsuarioRegisterDto
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -20,9 +21,13 @@ interface UsuarioApi {
     @GET("api/v1/usuario/users/{id}")
     suspend fun getUsuarioById(@Path("id") id: Long): UsuarioDto
 
-    // POST /api/v1/usuario/users
+    // POST /api/v1/usuario/users (endpoint privado - requiere autenticación)
     @POST("api/v1/usuario/users")
     suspend fun crearUsuario(@Body usuario: UsuarioCreateDto): UsuarioDto
+
+    // POST /api/v1/usuario/register (endpoint público - sin autenticación, no requiere rolId)
+    @POST("api/v1/usuario/register")
+    suspend fun registrarUsuarioPublico(@Body usuario: UsuarioRegisterDto): UsuarioDto
 
     // PUT /api/v1/usuario/users/{id}
     @PUT("api/v1/usuario/users/{id}")

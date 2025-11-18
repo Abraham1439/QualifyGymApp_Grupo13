@@ -10,11 +10,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
-import com.example.qualifygym_grupo13.data.local.database.AppDatabase
 import com.example.qualifygym_grupo13.data.repository.ComentarioRepository
 import com.example.qualifygym_grupo13.data.repository.PublicacionRepository
 import com.example.qualifygym_grupo13.data.repository.TemaRepository
-import com.example.qualifygym_grupo13.data.repository.UserRepository
+import com.example.qualifygym_grupo13.data.repository.UsuarioRepository
 import com.example.qualifygym_grupo13.data.preferences.SessionManager
 import com.example.qualifygym_grupo13.navigation.AppNavGraph
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel
@@ -48,27 +47,22 @@ fun AppRoot() { // Raíz de la app para separar responsabilidades (se conserva)
     val context = LocalContext.current.applicationContext
     // Obtenemos el applicationContext para construir la base de datos de Room.
 
-    val db = AppDatabase.getInstance(context)
-    // Singleton de Room. No crea múltiples instancias.
-
-    val userDao = db.userDao()
-    // Obtenemos el DAO de usuarios desde la DB.
-
-    val userRepository = UserRepository(userDao)
-    // Repositorio que encapsula la lógica de login/registro contra Room.
+    // NUEVO: Usamos UsuarioRepository que se conecta a las APIs
+    val usuarioRepository = UsuarioRepository()
+    // Repositorio que encapsula la lógica de login/registro contra APIs.
 
     val sessionManager = SessionManager(context)
     // Gestor de sesión simple con SharedPreferences.
 
     val authViewModel: AuthViewModel = viewModel(
-        factory = AuthViewModelFactory(userRepository, sessionManager)
+        factory = AuthViewModelFactory(usuarioRepository, sessionManager)
     )
     // Creamos el ViewModel con factory para inyectar las dependencias.
 
-    // Creamos los repositorios para publicaciones
-    val publicacionRepository = PublicacionRepository(db.publicacionDao())
-    val temaRepository = TemaRepository(db.temaDao())
-    val comentarioRepository = ComentarioRepository(db.comentarioDao())
+    // Creamos los repositorios remotos para publicaciones, temas y comentarios
+    val publicacionRepository = PublicacionRepository()
+    val temaRepository = TemaRepository()
+    val comentarioRepository = ComentarioRepository()
 
     val publicacionViewModel: PublicacionViewModel = viewModel(
         factory = PublicacionViewModelFactory(

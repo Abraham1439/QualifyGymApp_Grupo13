@@ -2,8 +2,12 @@ package com.example.qualifygym_grupo13.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.qualifygym_grupo13.data.local.comentario.ComentarioEntity
 import com.example.qualifygym_grupo13.data.local.publicacion.PublicacionEntity
 import com.example.qualifygym_grupo13.data.local.tema.TemaEntity
+import com.example.qualifygym_grupo13.data.remote.dto.toComentarioEntity
+import com.example.qualifygym_grupo13.data.remote.dto.toPublicacionEntity
+import com.example.qualifygym_grupo13.data.remote.dto.toTemaEntity
 import com.example.qualifygym_grupo13.data.repository.ComentarioRepository
 import com.example.qualifygym_grupo13.data.repository.PublicacionRepository
 import com.example.qualifygym_grupo13.data.repository.TemaRepository
@@ -20,22 +24,39 @@ class PublicacionViewModel(
 ) : ViewModel() {
 
     // Lista de todas las publicaciones
-    val allPublicaciones: StateFlow<List<PublicacionEntity>> = 
-        publicacionRepository.getAllPublicaciones()
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
+    private val _allPublicaciones = MutableStateFlow<List<PublicacionEntity>>(emptyList())
+    val allPublicaciones: StateFlow<List<PublicacionEntity>> = _allPublicaciones
 
     // Lista de todos los temas
-    val allTemas: StateFlow<List<TemaEntity>> = 
-        temaRepository.getAllTemas()
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
+    private val _allTemas = MutableStateFlow<List<TemaEntity>>(emptyList())
+    val allTemas: StateFlow<List<TemaEntity>> = _allTemas
+    
+    init {
+        loadAllPublicaciones()
+        loadAllTemas()
+    }
+    
+    private fun loadAllPublicaciones() {
+        viewModelScope.launch {
+            val result = publicacionRepository.fetchPublicaciones()
+            result.onSuccess { dtos ->
+                _allPublicaciones.value = dtos.map { it.toPublicacionEntity() }
+            }.onFailure {
+                _errorMessage.value = "Error al cargar publicaciones: ${it.message}"
+            }
+        }
+    }
+    
+    private fun loadAllTemas() {
+        viewModelScope.launch {
+            val result = temaRepository.fetchTemas()
+            result.onSuccess { dtos ->
+                _allTemas.value = dtos.map { it.toTemaEntity() }
+            }.onFailure {
+                _errorMessage.value = "Error al cargar temas: ${it.message}"
+            }
+        }
+    }
 
     // Estado de carga
     private val _isLoading = MutableStateFlow(false)
@@ -65,83 +86,106 @@ class PublicacionViewModel(
         _errorMessage.value = null
         _successMessage.value = null
 
-        val result = publicacionRepository.insertPublicacion(
+        val createDto = com.example.qualifygym_grupo13.data.remote.dto.PublicacionCreateDto(
             titulo = titulo,
             descripcion = descripcion,
-            userId = userId,
+            usuarioId = userId,
             temaId = temaId,
             imageUrl = imageUrl
         )
 
+        val result = publicacionRepository.create(createDto)
+        
         _isLoading.value = false
 
-        if (result.isSuccess) {
-            _successMessage.value = "Publicación creada exitosamente"
-        } else {
-            _errorMessage.value = result.exceptionOrNull()?.message ?: "Error al crear la publicación"
-        }
-
-        return result
+        return result.fold(
+            onSuccess = { dto ->
+                _successMessage.value = "Publicación creada exitosamente"
+                loadAllPublicaciones() // Recargar lista
+                Result.success(dto.idPublicacion)
+            },
+            onFailure = { error ->
+                _errorMessage.value = error.message ?: "Error al crear la publicación"
+                Result.failure(error)
+            }
+        )
     }
     
     // Actualizar la imagen de una publicación
     suspend fun updatePublicacionImage(publicacionId: Long, imageUrl: String?) {
         viewModelScope.launch {
-            publicacionRepository.updatePublicacionImage(publicacionId, imageUrl)
+            _isLoading.value = true
+            val result = publicacionRepository.updateImagen(publicacionId, imageUrl ?: "")
+            result.onSuccess {
+                loadAllPublicaciones() // Recargar lista
+            }.onFailure {
+                _errorMessage.value = "Error al actualizar imagen: ${it.message}"
+            }
+            _isLoading.value = false
         }
     }
 
     // Obtener publicaciones de un usuario específico
     fun loadUserPublicaciones(userId: Long) {
         viewModelScope.launch {
-            publicacionRepository.getPublicacionesByUserId(userId)
-                .collect { publicaciones ->
-                    _userPublicaciones.value = publicaciones
-                }
+            _isLoading.value = true
+            val result = publicacionRepository.fetchPublicacionesPorUsuario(userId)
+            result.onSuccess { dtos ->
+                _userPublicaciones.value = dtos.map { it.toPublicacionEntity() }
+            }.onFailure {
+                _errorMessage.value = "Error al cargar publicaciones: ${it.message}"
+            }
+            _isLoading.value = false
         }
     }
 
     // Buscar publicaciones por query
     fun searchPublicaciones(query: String): StateFlow<List<PublicacionEntity>> {
-        return publicacionRepository.searchPublicaciones(query)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
+        val flow = MutableStateFlow<List<PublicacionEntity>>(emptyList())
+        viewModelScope.launch {
+            val result = publicacionRepository.buscarPublicaciones(query)
+            result.onSuccess { dtos ->
+                flow.value = dtos.map { it.toPublicacionEntity() }
+            }
+        }
+        return flow
     }
 
     // Obtener publicaciones por tema
     fun getPublicacionesByTema(temaId: Long): StateFlow<List<PublicacionEntity>> {
-        return publicacionRepository.getPublicacionesByTemaId(temaId)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
+        val flow = MutableStateFlow<List<PublicacionEntity>>(emptyList())
+        viewModelScope.launch {
+            val result = publicacionRepository.fetchPublicacionesPorTema(temaId)
+            result.onSuccess { dtos ->
+                flow.value = dtos.map { it.toPublicacionEntity() }
+            }
+        }
+        return flow
     }
 
     // Obtener una publicación específica por ID
     suspend fun getPublicacionById(id: Long): PublicacionEntity? {
-        return publicacionRepository.getPublicacionById(id)
+        val result = publicacionRepository.fetchPublicacionById(id)
+        return result.getOrNull()?.toPublicacionEntity()
     }
 
     // Obtener un tema específico por ID
     suspend fun getTemaById(id: Long): TemaEntity? {
-        return temaRepository.getTemaById(id)
+        val result = temaRepository.fetchTemaById(id)
+        return result.getOrNull()?.toTemaEntity()
     }
 
     // Eliminar una publicación
     suspend fun deletePublicacion(id: Long) {
         _isLoading.value = true
-        try {
-            publicacionRepository.deletePublicacion(id)
+        val result = publicacionRepository.delete(id)
+        result.onSuccess {
             _successMessage.value = "Publicación eliminada"
-        } catch (e: Exception) {
-            _errorMessage.value = "Error al eliminar: ${e.message}"
-        } finally {
-            _isLoading.value = false
+            loadAllPublicaciones() // Recargar lista
+        }.onFailure {
+            _errorMessage.value = "Error al eliminar: ${it.message}"
         }
+        _isLoading.value = false
     }
 
     // Crear un comentario
@@ -150,21 +194,68 @@ class PublicacionViewModel(
         userId: Long,
         publicacionId: Long
     ): Result<Long> {
-        return comentarioRepository.insertComentario(
+        val createDto = com.example.qualifygym_grupo13.data.remote.dto.ComentarioCreateDto(
             comentario = comentario,
-            userId = userId,
+            usuarioId = userId,
             publicacionId = publicacionId
+        )
+        
+        val result = comentarioRepository.create(createDto)
+        return result.fold(
+            onSuccess = { dto -> Result.success(dto.idComentario) },
+            onFailure = { error -> Result.failure(error) }
         )
     }
 
     // Obtener comentarios de una publicación específica
-    fun getComentariosByPublicacionId(publicacionId: Long) = 
-        comentarioRepository.getComentariosByPublicacionId(publicacionId)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
+    fun getComentariosByPublicacionId(publicacionId: Long): StateFlow<List<ComentarioEntity>> {
+        val flow = MutableStateFlow<List<ComentarioEntity>>(emptyList())
+        viewModelScope.launch {
+            val result = comentarioRepository.fetchComentariosPorPublicacion(publicacionId)
+            result.onSuccess { dtos ->
+                flow.value = dtos.map { it.toComentarioEntity() }
+            }
+        }
+        return flow
+    }
+
+    // Ocultar una publicación
+    suspend fun ocultarPublicacion(id: Long, motivoBaneo: String): Result<Unit> {
+        _isLoading.value = true
+        val result = publicacionRepository.ocultar(id, motivoBaneo)
+        val finalResult = result.fold(
+            onSuccess = {
+                _successMessage.value = "Publicación ocultada"
+                loadAllPublicaciones() // Recargar lista
+                Result.success(Unit)
+            },
+            onFailure = { error ->
+                _errorMessage.value = "Error al ocultar: ${error.message}"
+                Result.failure(error)
+            }
+        )
+        _isLoading.value = false
+        return finalResult
+    }
+
+    // Mostrar una publicación (desocultar)
+    suspend fun mostrarPublicacion(id: Long): Result<Unit> {
+        _isLoading.value = true
+        val result = publicacionRepository.mostrar(id)
+        val finalResult = result.fold(
+            onSuccess = {
+                _successMessage.value = "Publicación mostrada"
+                loadAllPublicaciones() // Recargar lista
+                Result.success(Unit)
+            },
+            onFailure = { error ->
+                _errorMessage.value = "Error al mostrar: ${error.message}"
+                Result.failure(error)
+            }
+        )
+        _isLoading.value = false
+        return finalResult
+    }
 
     // Limpiar mensajes
     fun clearMessages() {

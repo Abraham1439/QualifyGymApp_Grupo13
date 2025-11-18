@@ -2,12 +2,12 @@ package com.example.qualifygym_grupo13.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.qualifygym_grupo13.data.repository.UserRepository
+import com.example.qualifygym_grupo13.data.repository.UsuarioRepository
 import com.example.qualifygym_grupo13.data.preferences.SessionManager
 
 // Factory simple para crear AuthViewModel con sus dependencias.
 class AuthViewModelFactory(
-    private val repository: UserRepository,         // Dependencia UserRepository
+    private val repository: UsuarioRepository,         // Dependencia UsuarioRepository (API)
     private val sessionManager: SessionManager      // Dependencia SessionManager
 ): ViewModelProvider.Factory {
 

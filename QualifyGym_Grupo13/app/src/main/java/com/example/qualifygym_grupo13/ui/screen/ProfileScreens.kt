@@ -646,7 +646,10 @@ fun EditProfileScreen(
                             }
                             
                             // 2. Actualizar información del perfil
-                            val result = authViewModel?.updateUserProfile(name, email, phone)
+                            // Nota: Por ahora no tenemos campo de contraseña en la UI, 
+                            // pero el microservicio la requiere. Esto fallará hasta que agreguemos el campo.
+                            // Por ahora, usamos una cadena vacía que causará un error controlado
+                            val result = authViewModel?.updateUserProfile(name, email, phone, "")
                             
                             // 3. Actualizar foto de perfil en la base de datos
                             if (result?.isSuccess == true && savedPhotoPath != currentUser?.photoUrl) {
