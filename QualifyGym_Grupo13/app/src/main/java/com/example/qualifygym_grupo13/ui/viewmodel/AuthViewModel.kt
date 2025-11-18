@@ -13,6 +13,7 @@ import com.example.qualifygym_grupo13.domain.validation.*             // Importa
 import com.example.qualifygym_grupo13.data.repository.UsuarioRepository
 import com.example.qualifygym_grupo13.data.local.user.UserEntity
 import com.example.qualifygym_grupo13.data.preferences.SessionManager
+import com.example.qualifygym_grupo13.data.repository.toUserEntity
 
 // ----------------- ESTADOS DE UI (observable con StateFlow) -----------------
 
