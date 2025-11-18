@@ -1,76 +1,92 @@
 package com.example.qualifygym_grupo13.data.repository
 
-import com.example.qualifygym_grupo13.data.local.comentario.ComentarioDao
-import com.example.qualifygym_grupo13.data.local.comentario.ComentarioEntity
-import kotlinx.coroutines.flow.Flow
+import com.example.qualifygym_grupo13.data.remote.ComentarioApi
+import com.example.qualifygym_grupo13.data.remote.RemoteModule
+import com.example.qualifygym_grupo13.data.remote.dto.*
+import retrofit2.HttpException
 
-class ComentarioRepository(private val comentarioDao: ComentarioDao) {
-    
-    fun getComentariosByPublicacionId(publicacionId: Long): Flow<List<ComentarioEntity>> = 
-        comentarioDao.getByPublicacionId(publicacionId)
-    
-    fun getComentariosByUserId(userId: Long): Flow<List<ComentarioEntity>> = 
-        comentarioDao.getByUserId(userId)
-    
-    suspend fun getComentarioById(id: Long): ComentarioEntity? = comentarioDao.getById(id)
-    
-    suspend fun insertComentario(
-        comentario: String,
-        userId: Long,
-        publicacionId: Long
-    ): Result<Long> {
-        return try {
-            val comentarioEntity = ComentarioEntity(
-                comentario = comentario,
-                fecha_registro = System.currentTimeMillis(),
-                Usuarios_id_usuario = userId,
-                Publicacion_id_publicacion = publicacionId
-            )
-            val id = comentarioDao.insert(comentarioEntity)
-            Result.success(id)
-        } catch (e: Exception) {
-            Result.failure(e)
+class ComentarioRepository(
+    private val api: ComentarioApi = RemoteModule.comentarioApi
+) {
+    // Obtiene todos los comentarios
+    suspend fun fetchComentarios(): Result<List<ComentarioDto>> = try {
+        Result.success(api.getComentarios())
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Obtiene un comentario por ID
+    suspend fun fetchComentarioById(id: Long): Result<ComentarioDto> = try {
+        Result.success(api.getComentarioById(id))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Obtiene comentarios por publicación
+    suspend fun fetchComentariosPorPublicacion(publicacionId: Long, incluirOcultos: Boolean = false): Result<List<ComentarioDto>> = try {
+        Result.success(api.getComentariosPorPublicacion(publicacionId, incluirOcultos))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Obtiene comentarios por usuario
+    suspend fun fetchComentariosPorUsuario(usuarioId: Long): Result<List<ComentarioDto>> = try {
+        Result.success(api.getComentariosPorUsuario(usuarioId))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Cuenta comentarios por publicación
+    suspend fun contarComentariosPorPublicacion(publicacionId: Long): Result<Long> = try {
+        Result.success(api.contarComentariosPorPublicacion(publicacionId))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Cuenta comentarios por usuario
+    suspend fun contarComentariosPorUsuario(usuarioId: Long): Result<Long> = try {
+        Result.success(api.contarComentariosPorUsuario(usuarioId))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Crea un nuevo comentario
+    suspend fun create(comentario: ComentarioCreateDto): Result<ComentarioDto> = try {
+        Result.success(api.crearComentario(comentario))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Actualiza un comentario
+    suspend fun update(id: Long, comentario: ComentarioUpdateDto): Result<ComentarioDto> = try {
+        Result.success(api.actualizarComentario(id, comentario))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Oculta un comentario
+    suspend fun ocultar(id: Long, motivoBaneo: String): Result<ComentarioDto> = try {
+        Result.success(api.ocultarComentario(id, ComentarioOcultarDto(motivoBaneo)))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Muestra un comentario (desocultar)
+    suspend fun mostrar(id: Long): Result<ComentarioDto> = try {
+        Result.success(api.mostrarComentario(id))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Elimina un comentario
+    suspend fun delete(id: Long): Result<Unit> = try {
+        val resp = api.eliminarComentario(id)
+        if (resp.isSuccessful) {
+            Result.success(Unit)
+        } else {
+            Result.failure(HttpException(resp))
         }
-    }
-    
-    suspend fun updateComentario(comentario: ComentarioEntity) {
-        comentarioDao.update(comentario)
-    }
-    
-    suspend fun deleteComentario(id: Long) {
-        comentarioDao.deleteById(id)
-    }
-    
-    // Ocultar comentario (actualizar campo oculto a true)
-    suspend fun ocultarComentario(id: Long): Result<Unit> {
-        return try {
-            val comentario = comentarioDao.getById(id)
-            if (comentario != null) {
-                val comentarioActualizado = comentario.copy(oculto = true)
-                comentarioDao.update(comentarioActualizado)
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception("Comentario no encontrado"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-    
-    // Mostrar comentario (actualizar campo oculto a false)
-    suspend fun mostrarComentario(id: Long): Result<Unit> {
-        return try {
-            val comentario = comentarioDao.getById(id)
-            if (comentario != null) {
-                val comentarioActualizado = comentario.copy(oculto = false)
-                comentarioDao.update(comentarioActualizado)
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception("Comentario no encontrado"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    } catch (e: Exception) {
+        Result.failure(e)
     }
 }
-

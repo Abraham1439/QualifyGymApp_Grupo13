@@ -1,68 +1,106 @@
 package com.example.qualifygym_grupo13.data.repository
 
-import com.example.qualifygym_grupo13.data.local.publicacion.PublicacionDao
-import com.example.qualifygym_grupo13.data.local.publicacion.PublicacionEntity
-import kotlinx.coroutines.flow.Flow
+import com.example.qualifygym_grupo13.data.remote.PublicacionApi
+import com.example.qualifygym_grupo13.data.remote.RemoteModule
+import com.example.qualifygym_grupo13.data.remote.dto.*
+import retrofit2.HttpException
 
-class PublicacionRepository(private val publicacionDao: PublicacionDao) {
-    
-    fun getAllPublicaciones(): Flow<List<PublicacionEntity>> = publicacionDao.getAll()
-    
-    suspend fun getPublicacionById(id: Long): PublicacionEntity? = publicacionDao.getById(id)
-    
-    fun getPublicacionesByUserId(userId: Long): Flow<List<PublicacionEntity>> = 
-        publicacionDao.getByUserId(userId)
-    
-    fun getPublicacionesByTemaId(temaId: Long): Flow<List<PublicacionEntity>> = 
-        publicacionDao.getByTemaId(temaId)
-    
-    fun searchPublicaciones(query: String): Flow<List<PublicacionEntity>> = 
-        publicacionDao.search(query)
-    
-    suspend fun insertPublicacion(
-        titulo: String,
-        descripcion: String,
-        userId: Long,
-        temaId: Long,
-        imageUrl: String? = null
-    ): Result<Long> {
-        return try {
-            val publicacion = PublicacionEntity(
-                titulo = titulo,
-                fecha = System.currentTimeMillis(),
-                descripcion = descripcion,
-                Usuarios_id_usuario = userId,
-                Tema_id_tema = temaId,
-                imageUrl = imageUrl
-            )
-            val id = publicacionDao.insert(publicacion)
-            Result.success(id)
-        } catch (e: Exception) {
-            Result.failure(e)
+class PublicacionRepository(
+    private val api: PublicacionApi = RemoteModule.publicacionApi
+) {
+    // Obtiene todas las publicaciones
+    suspend fun fetchPublicaciones(incluirOcultas: Boolean = false): Result<List<PublicacionDto>> = try {
+        Result.success(api.getPublicaciones(incluirOcultas))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Obtiene una publicación por ID
+    suspend fun fetchPublicacionById(id: Long): Result<PublicacionDto> = try {
+        Result.success(api.getPublicacionById(id))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Obtiene publicaciones por tema
+    suspend fun fetchPublicacionesPorTema(temaId: Long, incluirOcultas: Boolean = false): Result<List<PublicacionDto>> = try {
+        Result.success(api.getPublicacionesPorTema(temaId, incluirOcultas))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Obtiene publicaciones por usuario
+    suspend fun fetchPublicacionesPorUsuario(usuarioId: Long, incluirOcultas: Boolean = false): Result<List<PublicacionDto>> = try {
+        Result.success(api.getPublicacionesPorUsuario(usuarioId, incluirOcultas))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Busca publicaciones
+    suspend fun buscarPublicaciones(query: String): Result<List<PublicacionDto>> = try {
+        Result.success(api.buscarPublicaciones(query))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Cuenta publicaciones por tema
+    suspend fun contarPublicacionesPorTema(temaId: Long): Result<Long> = try {
+        Result.success(api.contarPublicacionesPorTema(temaId))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Cuenta publicaciones por usuario
+    suspend fun contarPublicacionesPorUsuario(usuarioId: Long): Result<Long> = try {
+        Result.success(api.contarPublicacionesPorUsuario(usuarioId))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Crea una nueva publicación
+    suspend fun create(publicacion: PublicacionCreateDto): Result<PublicacionDto> = try {
+        Result.success(api.crearPublicacion(publicacion))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Actualiza una publicación
+    suspend fun update(id: Long, publicacion: PublicacionUpdateDto): Result<PublicacionDto> = try {
+        Result.success(api.actualizarPublicacion(id, publicacion))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Actualiza la imagen de una publicación
+    suspend fun updateImagen(id: Long, imageUrl: String): Result<PublicacionDto> = try {
+        Result.success(api.actualizarImagenPublicacion(id, PublicacionImagenDto(imageUrl)))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Oculta una publicación
+    suspend fun ocultar(id: Long, motivoBaneo: String): Result<PublicacionDto> = try {
+        Result.success(api.ocultarPublicacion(id, PublicacionOcultarDto(motivoBaneo)))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Muestra una publicación (desocultar)
+    suspend fun mostrar(id: Long): Result<PublicacionDto> = try {
+        Result.success(api.mostrarPublicacion(id))
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    // Elimina una publicación
+    suspend fun delete(id: Long): Result<Unit> = try {
+        val resp = api.eliminarPublicacion(id)
+        if (resp.isSuccessful) {
+            Result.success(Unit)
+        } else {
+            Result.failure(HttpException(resp))
         }
-    }
-    
-    suspend fun updatePublicacionImage(publicacionId: Long, imageUrl: String?): Result<Unit> {
-        return try {
-            val publicacion = publicacionDao.getById(publicacionId)
-            if (publicacion != null) {
-                val updatedPublicacion = publicacion.copy(imageUrl = imageUrl)
-                publicacionDao.update(updatedPublicacion)
-                Result.success(Unit)
-            } else {
-                Result.failure(IllegalArgumentException("Publicación no encontrada"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-    
-    suspend fun updatePublicacion(publicacion: PublicacionEntity) {
-        publicacionDao.update(publicacion)
-    }
-    
-    suspend fun deletePublicacion(id: Long) {
-        publicacionDao.deleteById(id)
+    } catch (e: Exception) {
+        Result.failure(e)
     }
 }
-

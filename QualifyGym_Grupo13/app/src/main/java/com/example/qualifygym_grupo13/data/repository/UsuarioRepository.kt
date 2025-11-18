@@ -50,9 +50,9 @@ class UsuarioRepository(
         Result.failure(e)
     }
 
-    // Login de usuario
-    suspend fun login(email: String, password: String): Result<String> = try {
-        val loginRequest = LoginRequestDto(email, password)
+    // Login de usuario (el microservicio espera username, no email)
+    suspend fun login(username: String, password: String): Result<String> = try {
+        val loginRequest = LoginRequestDto(username, password)
         val resp = api.login(loginRequest)
         if (resp.isSuccessful) {
             Result.success(resp.body() ?: "Login exitoso")

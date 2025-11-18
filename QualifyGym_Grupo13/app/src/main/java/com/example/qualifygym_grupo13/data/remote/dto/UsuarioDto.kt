@@ -5,6 +5,7 @@ data class UsuarioDto(
     val id: Long,
     val username: String,
     val email: String,
+    val phone: String?,
     val rol: RolDto?
 )
 
@@ -18,11 +19,12 @@ data class UsuarioCreateDto(
     val username: String,
     val password: String,
     val email: String,
+    val phone: String,
     val rolId: Long
 )
 
-// DTO para login
+// DTO para login (el microservicio espera username, no email)
 data class LoginRequestDto(
-    val email: String,
+    val username: String,
     val password: String
 )
