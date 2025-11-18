@@ -53,14 +53,19 @@ class UsuarioRepository(
             }
             
             val errorMessage = when (e.code()) {
-                401 -> {
-                    "Error 401 - No autorizado. " +
-                    "El microservicio puede requerir autenticación para crear usuarios. " +
-                    "Detalles: $errorBody"
+                401 -> "No autorizado. El endpoint de registro debería ser público. Detalles: $errorBody"
+                400 -> {
+                    // Intentar extraer mensaje más específico
+                    if (errorBody.contains("username")) {
+                        "El nombre de usuario ya está registrado o es inválido."
+                    } else if (errorBody.contains("email")) {
+                        "El email ya está registrado o es inválido."
+                    } else {
+                        "Datos inválidos: $errorBody"
+                    }
                 }
-                400 -> "Datos inválidos (400): $errorBody"
-                409 -> "El usuario ya existe (409): $errorBody"
-                500 -> "Error interno del servidor (500): $errorBody"
+                409 -> "El usuario ya existe: $errorBody"
+                500 -> "Error interno del servidor. Por favor intenta más tarde."
                 else -> "Error del servidor (${e.code()}): $errorBody"
             }
             Result.failure(Exception(errorMessage))
@@ -68,6 +73,8 @@ class UsuarioRepository(
             Result.failure(Exception("No se pudo conectar al servidor. Verifica tu conexión a internet."))
         } catch (e: java.net.SocketTimeoutException) {
             Result.failure(Exception("Tiempo de espera agotado. El servidor no respondió a tiempo."))
+        } catch (e: java.net.ConnectException) {
+            Result.failure(Exception("No se pudo establecer conexión con el servidor. Verifica tu conexión."))
         } catch (e: Exception) {
             Result.failure(Exception("Error inesperado: ${e.message ?: e.javaClass.simpleName}"))
         }
@@ -92,11 +99,16 @@ class UsuarioRepository(
         Result.failure(e)
     }
 
-    // Busca un usuario por email
+    // Busca un usuario por email usando el endpoint optimizado
     suspend fun findUsuarioByEmail(email: String): Result<UsuarioDto?> = try {
-        val usuarios = api.getusuarios()
-        val usuario = usuarios.find { it.email.equals(email, ignoreCase = true) }
+        val usuario = api.getUsuarioByEmail(email)
         Result.success(usuario)
+    } catch (e: retrofit2.HttpException) {
+        if (e.code() == 404) {
+            Result.success(null) // Usuario no encontrado, retornar null en lugar de error
+        } else {
+            Result.failure(e)
+        }
     } catch (e: Exception) {
         Result.failure(e)
     }
@@ -135,18 +147,40 @@ class UsuarioRepository(
             } catch (ex: Exception) {
                 "Error de autenticación"
             }
-            Result.failure(Exception("Error de login: $errorBody"))
+            val errorMessage = when (e.code()) {
+                401 -> "Credenciales inválidas. Verifica tu email y contraseña."
+                400 -> "Datos inválidos: $errorBody"
+                500 -> "Error del servidor. Por favor intenta más tarde."
+                else -> "Error de autenticación (${e.code()}): $errorBody"
+            }
+            Result.failure(Exception(errorMessage))
+        } catch (e: java.net.UnknownHostException) {
+            Result.failure(Exception("No se pudo conectar al servidor. Verifica tu conexión a internet."))
+        } catch (e: java.net.SocketTimeoutException) {
+            Result.failure(Exception("Tiempo de espera agotado. El servidor no respondió a tiempo."))
+        } catch (e: java.net.ConnectException) {
+            Result.failure(Exception("No se pudo establecer conexión con el servidor. Verifica tu conexión."))
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception("Error inesperado: ${e.message ?: e.javaClass.simpleName}"))
         }
     }
 
-    // Obtener usuario por ID
+    // Obtener usuario por ID con mejor manejo de errores
     suspend fun getUserById(userId: Long): UserEntity? = try {
         val result = fetchUsuarioById(userId)
         result.getOrNull()?.toUserEntity()
+    } catch (e: retrofit2.HttpException) {
+        if (e.code() == 404) {
+            null // Usuario no encontrado
+        } else {
+            null // En caso de otro error, retornar null
+        }
+    } catch (e: java.net.UnknownHostException) {
+        null // Sin conexión, retornar null para que se use caché local
+    } catch (e: java.net.SocketTimeoutException) {
+        null // Timeout, retornar null
     } catch (e: Exception) {
-        null
+        null // Cualquier otro error, retornar null
     }
 
     // Registro: crea un nuevo usuario

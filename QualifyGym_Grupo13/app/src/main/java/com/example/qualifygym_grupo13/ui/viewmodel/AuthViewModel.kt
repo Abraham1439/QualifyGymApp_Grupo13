@@ -133,25 +133,52 @@ class AuthViewModel(
     
     /**
      * Restaura la sesión guardada al iniciar la app
+     * Maneja errores de red de forma más elegante
      */
     private fun restoreSession() {
         viewModelScope.launch {
             try {
                 // Verificar si hay sesión guardada
                 val userId = sessionManager.getUserId()
-                if (userId != null && sessionManager.isLoggedIn()) {
-                    // Intentar obtener el usuario de la base de datos
+                val userEmail = sessionManager.getUserEmail()
+                
+                if (userId != null && sessionManager.isLoggedIn() && userEmail != null) {
+                    // Intentar obtener el usuario del servidor
                     val user = repository.getUserById(userId)
+                    
                     if (user != null) {
+                        // Usuario encontrado, restaurar sesión
                         _currentUser.value = user
                     } else {
-                        // Si el usuario no existe en la BD, limpiar la sesión
-                        sessionManager.clearSession()
+                        // Si no se pudo obtener (puede ser error de red o usuario no existe)
+                        // Intentar obtener por email como fallback
+                        try {
+                            val emailResult = repository.findUsuarioByEmail(userEmail)
+                            val userByEmail = emailResult.getOrNull()
+                            
+                            if (userByEmail != null) {
+                                _currentUser.value = userByEmail.toUserEntity()
+                                // Actualizar el ID de sesión por si cambió
+                                sessionManager.saveUserSession(userByEmail.id, userEmail)
+                            } else {
+                                // No se encontró el usuario, puede ser que no hay conexión
+                                // Mantener la sesión pero sin usuario (se pedirá login si es necesario)
+                                // No limpiamos la sesión para no forzar login si es solo un problema de red
+                            }
+                        } catch (e: Exception) {
+                            // Error al buscar por email, mantener sesión pero sin usuario
+                            // Esto permite que la app funcione aunque haya problemas de red
+                        }
                     }
                 }
             } catch (e: Exception) {
-                // Si hay algún error, simplemente no restauramos la sesión
-                sessionManager.clearSession()
+                // Si hay un error crítico, limpiar la sesión
+                // Pero solo si es un error que no es de red
+                if (e !is java.net.UnknownHostException && 
+                    e !is java.net.SocketTimeoutException && 
+                    e !is java.net.ConnectException) {
+                    sessionManager.clearSession()
+                }
             } finally {
                 _isCheckingSession.value = false
             }

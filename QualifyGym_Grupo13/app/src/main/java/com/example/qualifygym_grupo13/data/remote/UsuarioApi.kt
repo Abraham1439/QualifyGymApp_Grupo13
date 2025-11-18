@@ -21,6 +21,10 @@ interface UsuarioApi {
     @GET("api/v1/usuario/users/{id}")
     suspend fun getUsuarioById(@Path("id") id: Long): UsuarioDto
 
+    // GET /api/v1/usuario/users/email/{email}
+    @GET("api/v1/usuario/users/email/{email}")
+    suspend fun getUsuarioByEmail(@Path("email") email: String): UsuarioDto
+
     // POST /api/v1/usuario/users (endpoint privado - requiere autenticación)
     @POST("api/v1/usuario/users")
     suspend fun crearUsuario(@Body usuario: UsuarioCreateDto): UsuarioDto
