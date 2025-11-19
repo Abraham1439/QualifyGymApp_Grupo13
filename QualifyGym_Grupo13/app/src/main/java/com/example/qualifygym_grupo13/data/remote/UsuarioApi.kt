@@ -4,6 +4,7 @@ import com.example.qualifygym_grupo13.data.remote.dto.LoginRequestDto
 import com.example.qualifygym_grupo13.data.remote.dto.UsuarioCreateDto
 import com.example.qualifygym_grupo13.data.remote.dto.UsuarioDto
 import com.example.qualifygym_grupo13.data.remote.dto.UsuarioRegisterDto
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -21,9 +22,9 @@ interface UsuarioApi {
     @GET("api/v1/usuario/users/{id}")
     suspend fun getUsuarioById(@Path("id") id: Long): UsuarioDto
 
-    // GET /api/v1/usuario/users/email?email={email}
-    @GET("api/v1/usuario/users/email")
-    suspend fun getUsuarioByEmail(@retrofit2.http.Query("email") email: String): UsuarioDto
+    // GET /api/v1/usuario/users/email/{email}
+    @GET("api/v1/usuario/users/email/{email}")
+    suspend fun getUsuarioByEmail(@Path("email") email: String): UsuarioDto
 
     // POST /api/v1/usuario/users (endpoint privado - requiere autenticación)
     @POST("api/v1/usuario/users")
@@ -45,6 +46,8 @@ interface UsuarioApi {
     suspend fun eliminarUsuario(@Path("id") id: Long): Response<Unit>
 
     // POST /api/v1/usuario/login
+    // Nota: El microservicio devuelve un String simple "Login exitoso", no JSON
+    // Usamos ResponseBody para leer el body manualmente y evitar que Gson intente parsearlo
     @POST("api/v1/usuario/login")
-    suspend fun login(@Body loginRequest: LoginRequestDto): Response<String>
+    suspend fun login(@Body loginRequest: LoginRequestDto): Response<ResponseBody>
 }

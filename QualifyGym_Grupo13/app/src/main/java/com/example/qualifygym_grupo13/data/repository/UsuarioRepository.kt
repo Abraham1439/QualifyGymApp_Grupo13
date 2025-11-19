@@ -121,6 +121,9 @@ class UsuarioRepository(
             val resp = api.login(loginRequest)
             
             if (resp.isSuccessful) {
+                // Cerrar el ResponseBody para liberar recursos (el microservicio devuelve "Login exitoso" como texto)
+                resp.body()?.close()
+                
                 // Si el login es exitoso, obtener el usuario por email para construir UserEntity
                 val usuarioResult = findUsuarioByEmail(email.trim())
                 val usuario = usuarioResult.getOrNull()
