@@ -117,12 +117,12 @@ class UsuarioRepository(
     suspend fun login(email: String, password: String): Result<UserEntity> {
         return try {
             // Hacer login directamente con email y password
-            val loginRequest = LoginRequestDto(email, password)
+            val loginRequest = LoginRequestDto(email.trim(), password)
             val resp = api.login(loginRequest)
             
             if (resp.isSuccessful) {
                 // Si el login es exitoso, obtener el usuario por email para construir UserEntity
-                val usuarioResult = findUsuarioByEmail(email)
+                val usuarioResult = findUsuarioByEmail(email.trim())
                 val usuario = usuarioResult.getOrNull()
                 
                 if (usuario != null) {
@@ -138,7 +138,21 @@ class UsuarioRepository(
                 } catch (e: Exception) {
                     "Credenciales inválidas"
                 }
-                Result.failure(HttpException(resp))
+                
+                // Crear un mensaje de error más descriptivo
+                val errorMessage = when (resp.code()) {
+                    401 -> {
+                        if (errorBody.contains("Credenciales inválidas")) {
+                            "Email o contraseña incorrectos. Verifica tus credenciales."
+                        } else {
+                            "Credenciales inválidas: $errorBody"
+                        }
+                    }
+                    400 -> "Datos inválidos: $errorBody"
+                    500 -> "Error del servidor. Por favor intenta más tarde."
+                    else -> "Error de autenticación (${resp.code()}): $errorBody"
+                }
+                Result.failure(Exception(errorMessage))
             }
         } catch (e: retrofit2.HttpException) {
             // Manejar errores HTTP específicos
@@ -148,8 +162,14 @@ class UsuarioRepository(
                 "Error de autenticación"
             }
             val errorMessage = when (e.code()) {
-                401 -> "Credenciales inválidas. Verifica tu email y contraseña."
-                400 -> "Datos inválidos: $errorBody"
+                401 -> {
+                    if (errorBody.contains("Credenciales inválidas") || errorBody.contains("Credenciales")) {
+                        "Email o contraseña incorrectos. Verifica tus credenciales."
+                    } else {
+                        "Credenciales inválidas: $errorBody"
+                    }
+                }
+                400 -> "Datos inválidos. Verifica que el email y contraseña estén correctos: $errorBody"
                 500 -> "Error del servidor. Por favor intenta más tarde."
                 else -> "Error de autenticación (${e.code()}): $errorBody"
             }
