@@ -45,6 +45,7 @@ sealed class Route(val path: String) { // Cada objeto representa una pantalla
     data object ManagePublications : Route("managePublications")
     data object ManageUsers : Route("manageUsers")
     data object ManageThemes : Route("manageThemes")
+    data object AdminStatistics : Route("adminStatistics")
 }
 
 //NOTA:

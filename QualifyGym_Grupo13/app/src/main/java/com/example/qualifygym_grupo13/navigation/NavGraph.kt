@@ -33,10 +33,7 @@ import com.example.qualifygym_grupo13.ui.screen.CreatePublicationScreen
 import com.example.qualifygym_grupo13.ui.screen.ProfileScreen
 import com.example.qualifygym_grupo13.ui.screen.EditProfileScreen
 import com.example.qualifygym_grupo13.ui.screen.SearchScreen
-import com.example.qualifygym_grupo13.ui.screen.AdminDashboardScreen
-import com.example.qualifygym_grupo13.ui.screen.ManagePublicationsScreen
-import com.example.qualifygym_grupo13.ui.screen.ManageUsersScreen
-import com.example.qualifygym_grupo13.ui.screen.ManageThemesScreen
+import com.example.qualifygym_grupo13.ui.screen.AdminMainScreen
 import com.example.qualifygym_grupo13.ui.screen.ForgotPasswordScreen
 import com.example.qualifygym_grupo13.ui.screen.ChangePasswordScreen
 import com.example.qualifygym_grupo13.ui.screen.LoginScreenVm
@@ -337,10 +334,11 @@ fun AppNavGraph(
                     )
                 }
                 composable(Route.AdminDashboard.path) {
-                    AdminDashboardScreen(
-                        onManagePosts = { navController.navigate(Route.ManagePublications.path) },
-                        onManageUsers = { navController.navigate(Route.ManageUsers.path) },
-                        onManageThemes = { navController.navigate(Route.ManageThemes.path) }
+                    AdminMainScreen(
+                        publicacionViewModel = publicacionViewModel,
+                        authViewModel = authViewModel,
+                        onBack = { navController.popBackStack() },
+                        onViewPostDetail = { postId -> openPost(postId) }
                     )
                 }
                 composable(Route.TopicDetail.path) { backStackEntry ->
@@ -529,9 +527,40 @@ fun AppNavGraph(
                         }
                     )
                 }
-                composable(Route.ManagePublications.path) { ManagePublicationsScreen() }
-                composable(Route.ManageUsers.path) { ManageUsersScreen() }
-                composable(Route.ManageThemes.path) { ManageThemesScreen() }
+                // Las pantallas de gestión ahora están integradas en AdminMainScreen con tabs
+                // Estas rutas se mantienen por compatibilidad pero redirigen al dashboard
+                composable(Route.ManagePublications.path) {
+                    AdminMainScreen(
+                        publicacionViewModel = publicacionViewModel,
+                        authViewModel = authViewModel,
+                        onBack = { navController.popBackStack() },
+                        onViewPostDetail = { postId -> openPost(postId) }
+                    )
+                }
+                composable(Route.ManageUsers.path) {
+                    AdminMainScreen(
+                        publicacionViewModel = publicacionViewModel,
+                        authViewModel = authViewModel,
+                        onBack = { navController.popBackStack() },
+                        onViewPostDetail = { postId -> openPost(postId) }
+                    )
+                }
+                composable(Route.ManageThemes.path) {
+                    AdminMainScreen(
+                        publicacionViewModel = publicacionViewModel,
+                        authViewModel = authViewModel,
+                        onBack = { navController.popBackStack() },
+                        onViewPostDetail = { postId -> openPost(postId) }
+                    )
+                }
+                composable(Route.AdminStatistics.path) {
+                    AdminMainScreen(
+                        publicacionViewModel = publicacionViewModel,
+                        authViewModel = authViewModel,
+                        onBack = { navController.popBackStack() },
+                        onViewPostDetail = { postId -> openPost(postId) }
+                    )
+                }
                 composable(Route.Forgot.path) {
                     ForgotPasswordScreen(
                         onBackToLogin = { navController.popBackStack() }

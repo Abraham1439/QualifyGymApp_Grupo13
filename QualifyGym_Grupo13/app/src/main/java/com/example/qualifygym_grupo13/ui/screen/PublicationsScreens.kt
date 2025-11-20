@@ -395,7 +395,7 @@ fun PublicationDetailScreen(
                                                 publicacion?.let { pub ->
                                                     val result = publicacionViewModel?.ocultarPublicacion(pub.idPublicacion, "Ocultada por administrador")
                                                     result?.onSuccess {
-                                                        Toast.makeText(context, "Publicación ocultada", Toast.LENGTH_SHORT).show()
+                                                        Toast.makeText(context, "Publicación oculta", Toast.LENGTH_SHORT).show()
                                                         onPublicationHidden()
                                                     }?.onFailure {
                                                         Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
@@ -418,7 +418,7 @@ fun PublicationDetailScreen(
                                                 publicacion?.let { pub ->
                                                     val result = publicacionViewModel?.mostrarPublicacion(pub.idPublicacion)
                                                     result?.onSuccess {
-                                                        Toast.makeText(context, "Publicación mostrada", Toast.LENGTH_SHORT).show()
+                                                        Toast.makeText(context, "Publicación desocultada", Toast.LENGTH_SHORT).show()
                                                     }?.onFailure {
                                                         Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
                                                     }

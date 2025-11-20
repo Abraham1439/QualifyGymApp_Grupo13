@@ -38,12 +38,26 @@ class PublicacionViewModel(
     
     private fun loadAllPublicaciones() {
         viewModelScope.launch {
-            val result = publicacionRepository.fetchPublicaciones()
+            val result = publicacionRepository.fetchPublicaciones(incluirOcultas = false)
             result.onSuccess { dtos ->
                 _allPublicaciones.value = dtos.map { it.toPublicacionDomain() }
             }.onFailure {
                 _errorMessage.value = "Error al cargar publicaciones: ${it.message}"
             }
+        }
+    }
+    
+    // Cargar todas las publicaciones incluyendo las ocultas (para admin)
+    fun loadAllPublicacionesIncluyendoOcultas() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val result = publicacionRepository.fetchPublicaciones(incluirOcultas = true)
+            result.onSuccess { dtos ->
+                _allPublicaciones.value = dtos.map { it.toPublicacionDomain() }
+            }.onFailure {
+                _errorMessage.value = "Error al cargar publicaciones: ${it.message}"
+            }
+            _isLoading.value = false
         }
     }
     
@@ -220,13 +234,18 @@ class PublicacionViewModel(
     }
 
     // Ocultar una publicación
-    suspend fun ocultarPublicacion(id: Long, motivoBaneo: String): Result<Unit> {
+    suspend fun ocultarPublicacion(id: Long, motivoBaneo: String, incluirOcultas: Boolean = false): Result<Unit> {
         _isLoading.value = true
         val result = publicacionRepository.ocultar(id, motivoBaneo)
         val finalResult = result.fold(
             onSuccess = {
                 _successMessage.value = "Publicación ocultada"
-                loadAllPublicaciones() // Recargar lista
+                // Recargar lista con el mismo filtro que se estaba usando
+                if (incluirOcultas) {
+                    loadAllPublicacionesIncluyendoOcultas()
+                } else {
+                    loadAllPublicaciones()
+                }
                 Result.success(Unit)
             },
             onFailure = { error ->
@@ -239,13 +258,18 @@ class PublicacionViewModel(
     }
 
     // Mostrar una publicación (desocultar)
-    suspend fun mostrarPublicacion(id: Long): Result<Unit> {
+    suspend fun mostrarPublicacion(id: Long, incluirOcultas: Boolean = false): Result<Unit> {
         _isLoading.value = true
         val result = publicacionRepository.mostrar(id)
         val finalResult = result.fold(
             onSuccess = {
                 _successMessage.value = "Publicación mostrada"
-                loadAllPublicaciones() // Recargar lista
+                // Recargar lista con el mismo filtro que se estaba usando
+                if (incluirOcultas) {
+                    loadAllPublicacionesIncluyendoOcultas()
+                } else {
+                    loadAllPublicaciones()
+                }
                 Result.success(Unit)
             },
             onFailure = { error ->
