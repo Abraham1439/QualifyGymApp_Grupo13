@@ -38,11 +38,13 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.viewModelScope
 import coil.compose.rememberAsyncImagePainter
 import com.example.qualifygym_grupo13.data.model.Publicacion
+import com.example.qualifygym_grupo13.data.repository.UsuarioRepository
 import com.example.qualifygym_grupo13.data.storage.ImageStorageManager
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel
 import com.example.qualifygym_grupo13.domain.validation.validateNameLettersOnly
 import com.example.qualifygym_grupo13.domain.validation.validateEmail
 import com.example.qualifygym_grupo13.domain.validation.validatePhoneDigitsOnly
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -525,8 +527,34 @@ fun EditProfileScreen(
                     // Filtrar solo dígitos (igual que en el registro)
                     val digitsOnly = newValue.filter { it.isDigit() }
                     phone = digitsOnly
-                    // Validar usando la función de validación
-                    phoneError = validatePhoneDigitsOnly(digitsOnly)
+                    
+                    // Validar usando la función de validación local primero
+                    val localError = validatePhoneDigitsOnly(digitsOnly)
+                    phoneError = localError
+                    
+                    // Si la validación local pasa y el teléfono tiene 9 dígitos, verificar si ya existe
+                    // Pero solo si es diferente al teléfono actual del usuario
+                    if (localError == null && digitsOnly.length == 9 && digitsOnly != currentPhone) {
+                        scope.launch {
+                            delay(500) // Debounce para evitar demasiadas llamadas
+                            
+                            // Verificar que el teléfono no haya cambiado mientras esperábamos
+                            if (phone == digitsOnly) {
+                                val usuarioRepository = UsuarioRepository()
+                                val phoneExistsResult = usuarioRepository.findUsuarioByPhone(digitsOnly)
+                                val phoneExists = phoneExistsResult.getOrNull() != null
+                                
+                                if (phoneExists) {
+                                    phoneError = "El número telefónico ya está registrado"
+                                } else {
+                                    phoneError = null // Limpiar error si no existe
+                                }
+                            }
+                        }
+                    } else if (digitsOnly == currentPhone) {
+                        // Si es el mismo teléfono actual, no hay error
+                        phoneError = null
+                    }
                 },
                 label = { Text("Teléfono") },
                 leadingIcon = {
@@ -617,7 +645,7 @@ fun EditProfileScreen(
                         emailError = validateEmail(email)
                         phoneError = validatePhoneDigitsOnly(phone)
                         
-                        // Si hay algún error, mostrar mensaje y no guardar
+                        // Si hay algún error de formato, mostrar mensaje y no guardar
                         if (nameError != null || emailError != null || phoneError != null) {
                             errorMessage = "Debe rellenar todos los campos del formulario"
                             return@Button
@@ -626,6 +654,19 @@ fun EditProfileScreen(
                         // Actualizar perfil a través del ViewModel
                         scope.launch {
                             isLoading = true
+                            
+                            // Verificar si el teléfono ha cambiado y si ya está en uso (solo si es diferente al actual)
+                            if (phone != currentPhone && phone.length == 9) {
+                                val usuarioRepository = UsuarioRepository()
+                                val phoneExistsResult = usuarioRepository.findUsuarioByPhone(phone)
+                                val phoneExists = phoneExistsResult.getOrNull() != null
+                                
+                                if (phoneExists) {
+                                    phoneError = "El número telefónico ya está registrado"
+                                    isLoading = false
+                                    return@launch
+                                }
+                            }
                             
                             // 1. Guardar la foto de perfil si hay una nueva
                             var savedPhotoPath: String? = currentUser?.photoUrl // Mantener la actual
