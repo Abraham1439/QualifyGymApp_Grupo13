@@ -468,21 +468,40 @@ fun ManagePublicationsContent(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(allPublicaciones) { publicacion ->
+                var showMotivoDialog by remember { mutableStateOf(false) }
+                
                 PublicationAdminCard(
                     publicacion = publicacion,
                     onViewDetail = { onViewDetail(publicacion.idPublicacion.toString()) },
                     onToggleVisibility = {
-                        publicacionViewModel?.let { vm ->
-                            scope.launch {
-                                if (publicacion.oculta) {
+                        if (publicacion.oculta) {
+                            // Si está oculta, mostrar directamente sin diálogo
+                            publicacionViewModel?.let { vm ->
+                                scope.launch {
                                     vm.mostrarPublicacion(publicacion.idPublicacion, incluirOcultas = true)
-                                } else {
-                                    vm.ocultarPublicacion(publicacion.idPublicacion, "Ocultada por administrador", incluirOcultas = true)
                                 }
                             }
+                        } else {
+                            // Si no está oculta, mostrar diálogo para escribir motivo
+                            showMotivoDialog = true
                         }
                     }
                 )
+                
+                // Diálogo para escribir motivo de ocultación
+                if (showMotivoDialog) {
+                    OcultarPublicacionDialog(
+                        onDismiss = { showMotivoDialog = false },
+                        onConfirm = { motivo ->
+                            publicacionViewModel?.let { vm ->
+                                scope.launch {
+                                    vm.ocultarPublicacion(publicacion.idPublicacion, motivo, incluirOcultas = true)
+                                }
+                            }
+                            showMotivoDialog = false
+                        }
+                    )
+                }
             }
         }
     }
@@ -718,6 +737,75 @@ fun DetailedStatCard(
             )
         }
     }
+}
+
+@Composable
+fun OcultarPublicacionDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var motivo by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Ocultar Publicación",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Por favor, escribe el motivo por el cual se está ocultando esta publicación. Este mensaje se enviará como notificación al usuario.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                OutlinedTextField(
+                    value = motivo,
+                    onValueChange = { 
+                        motivo = it
+                        error = null
+                    },
+                    label = { Text("Motivo de ocultación") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 5,
+                    isError = error != null,
+                    supportingText = {
+                        if (error != null) {
+                            Text(
+                                text = error ?: "",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (motivo.trim().isEmpty()) {
+                        error = "El motivo es obligatorio"
+                    } else {
+                        onConfirm(motivo.trim())
+                    }
+                }
+            ) {
+                Text("Confirmar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
 
 @Composable

@@ -49,6 +49,9 @@ sealed class Route(val path: String) { // Cada objeto representa una pantalla
     
     // Moderator
     data object ModeratorDashboard : Route("moderatorDashboard")
+    
+    // Notificaciones
+    data object Notifications : Route("notifications")
 }
 
 //NOTA:

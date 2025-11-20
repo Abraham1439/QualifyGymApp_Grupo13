@@ -1,12 +1,15 @@
 package com.example.qualifygym_grupo13.ui.components
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -32,7 +35,9 @@ fun AppTopBar(
     onHome: () -> Unit,       // Navega a Home
     onLogin: () -> Unit,      // Navega a Login
     onRegister: () -> Unit,   // Navega a Registro
-    currentUser: UserDomain? = null // Usuario actual para mostrar indicador de admin
+    onNotifications: (() -> Unit)? = null, // Navega a Notificaciones
+    currentUser: UserDomain? = null, // Usuario actual para mostrar indicador de admin
+    notificationCount: Long = 0 // Contador de notificaciones no leídas
 ) {
 
     CenterAlignedTopAppBar( // Barra alineada al centro
@@ -56,6 +61,36 @@ fun AppTopBar(
             }
         },
         actions = {
+            // Botón de notificaciones (solo si hay usuario logueado)
+            if (currentUser != null && onNotifications != null) {
+                Box {
+                    IconButton(onClick = onNotifications) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Filled.Notifications,
+                            contentDescription = "Notificaciones"
+                        )
+                    }
+                    // Badge con contador de notificaciones no leídas
+                    if (notificationCount > 0) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.error,
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(end = 4.dp, top = 4.dp)
+                        ) {
+                            Text(
+                                text = if (notificationCount > 99) "99+" else notificationCount.toString(),
+                                color = MaterialTheme.colorScheme.onError,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+            
             // Indicador de administrador en la parte derecha
             if (currentUser?.isAdmin == true) {
                 Surface(

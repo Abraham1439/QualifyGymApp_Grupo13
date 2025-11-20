@@ -377,21 +377,40 @@ fun ModeratorManagePublicationsContent(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(allPublicaciones) { publicacion ->
+                var showMotivoDialog by remember { mutableStateOf(false) }
+                
                 PublicationAdminCard(
                     publicacion = publicacion,
                     onViewDetail = { onViewDetail(publicacion.idPublicacion.toString()) },
                     onToggleVisibility = {
-                        publicacionViewModel?.let { vm ->
-                            scope.launch {
-                                if (publicacion.oculta) {
+                        if (publicacion.oculta) {
+                            // Si está oculta, mostrar directamente sin diálogo
+                            publicacionViewModel?.let { vm ->
+                                scope.launch {
                                     vm.mostrarPublicacion(publicacion.idPublicacion, incluirOcultas = true)
-                                } else {
-                                    vm.ocultarPublicacion(publicacion.idPublicacion, "Ocultada por moderador", incluirOcultas = true)
                                 }
                             }
+                        } else {
+                            // Si no está oculta, mostrar diálogo para escribir motivo
+                            showMotivoDialog = true
                         }
                     }
                 )
+                
+                // Diálogo para escribir motivo de ocultación
+                if (showMotivoDialog) {
+                    OcultarPublicacionDialog(
+                        onDismiss = { showMotivoDialog = false },
+                        onConfirm = { motivo ->
+                            publicacionViewModel?.let { vm ->
+                                scope.launch {
+                                    vm.ocultarPublicacion(publicacion.idPublicacion, motivo, incluirOcultas = true)
+                                }
+                            }
+                            showMotivoDialog = false
+                        }
+                    )
+                }
             }
         }
     }

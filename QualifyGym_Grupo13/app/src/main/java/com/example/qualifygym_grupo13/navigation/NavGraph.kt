@@ -35,6 +35,7 @@ import com.example.qualifygym_grupo13.ui.screen.EditProfileScreen
 import com.example.qualifygym_grupo13.ui.screen.SearchScreen
 import com.example.qualifygym_grupo13.ui.screen.AdminMainScreen
 import com.example.qualifygym_grupo13.ui.screen.ModeratorMainScreen
+import com.example.qualifygym_grupo13.ui.screen.NotificationsScreen
 import com.example.qualifygym_grupo13.ui.screen.ForgotPasswordScreen
 import com.example.qualifygym_grupo13.ui.screen.ChangePasswordScreen
 import com.example.qualifygym_grupo13.ui.screen.LoginScreenVm
@@ -47,7 +48,8 @@ import kotlinx.coroutines.launch
 fun AppNavGraph(
     navController: NavHostController,
     authViewModel: AuthViewModel,
-    publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel
+    publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel,
+    notificacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.NotificacionViewModel? = null
 ) { // Recibe el controlador
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed) // Estado del drawer
     val scope = rememberCoroutineScope() // Necesario para abrir/cerrar drawer
@@ -74,6 +76,7 @@ fun AppNavGraph(
     val goForgot: () -> Unit = { navController.navigate(Route.Forgot.path) } // Ir a recuperar
     val goProfile: () -> Unit = { navController.navigate(Route.Profile.path) } // Ir a Perfil/Configuración
     val goSearch: () -> Unit = { navController.navigate(Route.Search.path) } // Ir a Búsqueda
+    val goNotifications: () -> Unit = { navController.navigate(Route.Notifications.path) } // Ir a Notificaciones
     val openTopicDetail: (String) -> Unit = { topicId -> navController.navigate(Route.TopicDetail.create(topicId)) }
     val openTopic: (String) -> Unit = { topicId -> navController.navigate(Route.PublicationsList.create(topicId)) }
     val openPost: (String) -> Unit = { postId -> navController.navigate(Route.PublicationDetail.create(postId)) }
@@ -147,6 +150,17 @@ fun AppNavGraph(
         // Obtener usuario actual para toda la barra superior
         val currentUser by authViewModel.currentUser.collectAsState()
         
+        // Obtener contador de notificaciones no leídas
+        val notificationCount by notificacionViewModel?.countNoLeidas?.collectAsState() 
+            ?: remember { mutableStateOf(0L) }
+        
+        // Actualizar contador cuando cambie el usuario
+        LaunchedEffect(currentUser?.id) {
+            if (currentUser?.id != null && currentUser?.id!! > 0) {
+                notificacionViewModel?.updateCountNoLeidas(currentUser?.id!!)
+            }
+        }
+        
         Scaffold (
             topBar = { // Barra superior con íconos/menú
                 //Mostrar la topBar solo si la ruta actual no esta en la lista
@@ -156,7 +170,9 @@ fun AppNavGraph(
                         onHome = goHome,     // Botón Home
                         onLogin = goLogin,   // Botón Login
                         onRegister = goRegister, // Botón Registro
-                        currentUser = currentUser // Pasar usuario actual para mostrar indicador de admin
+                        onNotifications = if (currentUser != null) { { goNotifications() } } else null, // Botón Notificaciones
+                        currentUser = currentUser, // Pasar usuario actual para mostrar indicador de admin
+                        notificationCount = notificationCount // Contador de notificaciones
                     )
                 }
             }
@@ -299,6 +315,14 @@ fun AppNavGraph(
                         onCancel = {
                             navController.popBackStack()
                         }
+                    )
+                }
+                composable(Route.Notifications.path) {
+                    val currentUser by authViewModel.currentUser.collectAsState()
+                    NotificationsScreen(
+                        notificacionViewModel = notificacionViewModel,
+                        currentUserId = currentUser?.id,
+                        onBack = { navController.popBackStack() }
                     )
                 }
                 composable(Route.Profile.path) {

@@ -11,9 +11,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.example.qualifygym_grupo13.data.repository.ComentarioRepository
+import com.example.qualifygym_grupo13.data.repository.NotificacionRepository
 import com.example.qualifygym_grupo13.data.repository.PublicacionRepository
 import com.example.qualifygym_grupo13.data.repository.TemaRepository
 import com.example.qualifygym_grupo13.data.repository.UsuarioRepository
+import com.example.qualifygym_grupo13.data.remote.RemoteModule
 import com.example.qualifygym_grupo13.data.preferences.SessionManager
 import com.example.qualifygym_grupo13.navigation.AppNavGraph
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel
@@ -71,6 +73,12 @@ fun AppRoot() { // Raíz de la app para separar responsabilidades (se conserva)
         )
     )
 
+    // Repositorio y ViewModel de notificaciones
+    val notificacionRepository = NotificacionRepository(RemoteModule.publicacionApi)
+    val notificacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.NotificacionViewModel = viewModel(
+        factory = com.example.qualifygym_grupo13.ui.viewmodel.NotificacionViewModelFactory(notificacionRepository)
+    )
+
     val navController = rememberNavController() // Controlador de navegación (igual que antes)
     MaterialTheme { // Provee colores/tipografías Material 3 (igual que antes)
         Surface(color = MaterialTheme.colorScheme.background) { // Fondo general (igual que antes)
@@ -78,7 +86,8 @@ fun AppRoot() { // Raíz de la app para separar responsabilidades (se conserva)
             AppNavGraph(
                 navController = navController,
                 authViewModel = authViewModel,
-                publicacionViewModel = publicacionViewModel
+                publicacionViewModel = publicacionViewModel,
+                notificacionViewModel = notificacionViewModel
             )
 
         }
