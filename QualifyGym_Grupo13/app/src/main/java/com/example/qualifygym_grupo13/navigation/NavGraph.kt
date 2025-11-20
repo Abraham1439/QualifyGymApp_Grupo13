@@ -34,6 +34,7 @@ import com.example.qualifygym_grupo13.ui.screen.ProfileScreen
 import com.example.qualifygym_grupo13.ui.screen.EditProfileScreen
 import com.example.qualifygym_grupo13.ui.screen.SearchScreen
 import com.example.qualifygym_grupo13.ui.screen.AdminMainScreen
+import com.example.qualifygym_grupo13.ui.screen.ModeratorMainScreen
 import com.example.qualifygym_grupo13.ui.screen.ForgotPasswordScreen
 import com.example.qualifygym_grupo13.ui.screen.ChangePasswordScreen
 import com.example.qualifygym_grupo13.ui.screen.LoginScreenVm
@@ -67,6 +68,7 @@ fun AppNavGraph(
     // Helpers de navegación (reutilizamos en topbar/drawer/botones)
     val goHome: () -> Unit    = { navController.navigate(Route.Home.path) }    // Ir a Home
     val goAdminDashboard: () -> Unit = { navController.navigate(Route.AdminDashboard.path) } // Ir a AdminDashboard
+    val goModeratorDashboard: () -> Unit = { navController.navigate(Route.ModeratorDashboard.path) } // Ir a ModeratorDashboard
     val goLogin: () -> Unit   = { navController.navigate(Route.Login.path) }   // Ir a Login
     val goRegister: () -> Unit = { navController.navigate(Route.Register.path) } // Ir a Registro
     val goForgot: () -> Unit = { navController.navigate(Route.Forgot.path) } // Ir a recuperar
@@ -127,6 +129,13 @@ fun AppNavGraph(
                             scope.launch { drawerState.close() } // Cierra drawer
                             goAdminDashboard() // Navega a AdminDashboard
                         }
+                    } else null,
+                    // Solo mostrar botón de moderador si el usuario es moderador
+                    onModeratorDashboard = if (currentUserDrawer?.isModerator == true) {
+                        {
+                            scope.launch { drawerState.close() } // Cierra drawer
+                            goModeratorDashboard() // Navega a ModeratorDashboard
+                        }
                     } else null
                 ),
                 userName = currentUserDrawer?.name ?: "Usuario Demo",
@@ -169,16 +178,26 @@ fun AppNavGraph(
                         if (!isCheckingSession) {
                             // Si ya terminó de verificar
                             if (currentUser != null) {
-                                // Si hay usuario logueado, verificar si es admin
+                                // Si hay usuario logueado, verificar rol
                                 if (currentUser?.isAdmin == true) {
                                     // Si es admin, ir a AdminDashboard
                                     navController.navigate(Route.AdminDashboard.path) {
                                         popUpTo(Route.Splash.path) { inclusive = true }
                                     }
                                 } else {
-                                    // Si es usuario normal, ir a Home
-                                    navController.navigate(Route.Home.path) {
-                                        popUpTo(Route.Splash.path) { inclusive = true }
+                                    // Verificar si es moderador (asíncrono)
+                                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                                        val isModerator = authViewModel.isCurrentUserModerator()
+                                        if (isModerator) {
+                                            navController.navigate(Route.ModeratorDashboard.path) {
+                                                popUpTo(Route.Splash.path) { inclusive = true }
+                                            }
+                                        } else {
+                                            // Si es usuario normal, ir a Home
+                                            navController.navigate(Route.Home.path) {
+                                                popUpTo(Route.Splash.path) { inclusive = true }
+                                            }
+                                        }
                                     }
                                 }
                             } else {
@@ -229,6 +248,7 @@ fun AppNavGraph(
                         vm = authViewModel,            // <-- NUEVO: pasamos VM inyectado
                         onLoginOkNavigateHome = goHome,            // Si el VM marca success=true, navegamos a Home (usuario normal)
                         onLoginOkNavigateAdmin = goAdminDashboard, // Si el VM marca success=true, navegamos a AdminDashboard (admin)
+                        onLoginOkNavigateModerator = goModeratorDashboard, // Si el VM marca success=true, navegamos a ModeratorDashboard (moderador)
                         onGoRegister = goRegister                  // Enlace para ir a la pantalla de Registro
                     )
                 }
@@ -335,6 +355,14 @@ fun AppNavGraph(
                 }
                 composable(Route.AdminDashboard.path) {
                     AdminMainScreen(
+                        publicacionViewModel = publicacionViewModel,
+                        authViewModel = authViewModel,
+                        onBack = { navController.popBackStack() },
+                        onViewPostDetail = { postId -> openPost(postId) }
+                    )
+                }
+                composable(Route.ModeratorDashboard.path) {
+                    ModeratorMainScreen(
                         publicacionViewModel = publicacionViewModel,
                         authViewModel = authViewModel,
                         onBack = { navController.popBackStack() },

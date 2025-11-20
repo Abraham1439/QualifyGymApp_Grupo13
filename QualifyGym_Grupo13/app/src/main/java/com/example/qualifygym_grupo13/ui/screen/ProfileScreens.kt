@@ -619,7 +619,7 @@ fun EditProfileScreen(
                         
                         // Si hay algún error, mostrar mensaje y no guardar
                         if (nameError != null || emailError != null || phoneError != null) {
-                            errorMessage = "Por favor corrige los errores en el formulario"
+                            errorMessage = "Debe rellenar todos los campos del formulario"
                             return@Button
                         }
                         

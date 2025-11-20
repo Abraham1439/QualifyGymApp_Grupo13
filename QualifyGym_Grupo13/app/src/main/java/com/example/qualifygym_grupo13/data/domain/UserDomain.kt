@@ -8,6 +8,7 @@ data class UserDomain(
     val phone: String,
     val password: String = "", // Solo para uso interno, no se persiste
     val isAdmin: Boolean = false,
+    val isModerator: Boolean = false, // Indica si el usuario es moderador
     val photoUrl: String? = null
 )
 

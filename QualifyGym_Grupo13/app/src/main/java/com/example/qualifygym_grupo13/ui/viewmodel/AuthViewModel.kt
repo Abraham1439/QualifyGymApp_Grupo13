@@ -375,4 +375,22 @@ class AuthViewModel(
         // NUEVO: Limpiar la sesión guardada
         sessionManager.clearSession()
     }
+    
+    /**
+     * Verifica si el usuario actual es moderador
+     * Consulta el rol desde el repositorio usando el email del usuario actual
+     */
+    suspend fun isCurrentUserModerator(): Boolean {
+        val currentUser = _currentUser.value
+        return if (currentUser != null) {
+            try {
+                val usuarioDto = repository.findUsuarioByEmail(currentUser.email)
+                usuarioDto.getOrNull()?.rol?.nombre?.equals("Moderador", ignoreCase = true) == true
+            } catch (e: Exception) {
+                false
+            }
+        } else {
+            false
+        }
+    }
 }

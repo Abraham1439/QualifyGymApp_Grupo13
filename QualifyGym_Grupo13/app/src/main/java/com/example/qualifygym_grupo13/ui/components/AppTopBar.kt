@@ -81,6 +81,31 @@ fun AppTopBar(
                     }
                 }
             }
+            // Indicador de moderador en la parte derecha
+            else if (currentUser?.isModerator == true) {
+                Surface(
+                    color = Color(0xFF0000FF).copy(alpha = 0.2f),
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "🛡️",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Moderador",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color(0xff000000),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
         }
     )
 }

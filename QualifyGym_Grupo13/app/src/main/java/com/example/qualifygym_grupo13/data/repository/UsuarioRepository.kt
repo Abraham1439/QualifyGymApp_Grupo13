@@ -18,6 +18,7 @@ fun UsuarioDto.toUserDomain(phone: String? = null, password: String = "", photoU
         phone = phone ?: this.phone ?: "",
         password = password, // No viene del DTO por seguridad
         isAdmin = this.rol?.nombre?.equals("Administrador", ignoreCase = true) == true,
+        isModerator = this.rol?.nombre?.equals("Moderador", ignoreCase = true) == true,
         photoUrl = photoUrl
     )
 }

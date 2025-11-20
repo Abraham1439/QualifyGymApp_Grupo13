@@ -24,6 +24,8 @@ import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel         // Nues
 import com.example.qualifygym_grupo13.R
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 //1 Lo primero que creamos en el archivo
 @Composable
@@ -31,12 +33,14 @@ fun LoginScreenVm(                  // Pantalla Login conectada al VM
     vm: AuthViewModel,                            // MOD: recibimos el VM desde NavGraph
     onLoginOkNavigateHome: () -> Unit,                       // Navega a Home cuando el login es exitoso (usuario normal)
     onLoginOkNavigateAdmin: () -> Unit,                     // Navega a AdminDashboard cuando el login es exitoso (admin)
+    onLoginOkNavigateModerator: () -> Unit,                 // Navega a ModeratorDashboard cuando el login es exitoso (moderador)
     onGoRegister: () -> Unit                                 // Navega a Registro
 ) {
 
     val state by vm.login.collectAsStateWithLifecycle()      // Observa el StateFlow en tiempo real
     val currentUser by vm.currentUser.collectAsStateWithLifecycle() // Observa el usuario actual
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     // Mostrar Toast cuando el login sea exitoso
     LaunchedEffect(state.success, currentUser) {
@@ -44,11 +48,19 @@ fun LoginScreenVm(                  // Pantalla Login conectada al VM
             val userName = currentUser?.name ?: "Usuario" // Obtener nombre del usuario o usar "Usuario" como fallback
             Toast.makeText(context, "Inicio de sesión exitoso, Bienvenido $userName", Toast.LENGTH_SHORT).show()
             vm.clearLoginResult()                                // Limpia banderas
-            // Navegar según el rol del usuario: admin va a AdminDashboard, usuario normal a Home
+            // Navegar según el rol del usuario: admin va a AdminDashboard, moderador a ModeratorDashboard, usuario normal a Home
             if (currentUser?.isAdmin == true) {
                 onLoginOkNavigateAdmin()                        // Navega a AdminDashboard si es admin
             } else {
-                onLoginOkNavigateHome()                         // Navega a Home si es usuario normal
+                // Verificar si es moderador consultando el rol desde el repositorio
+                scope.launch {
+                    val isModerator = vm.isCurrentUserModerator()
+                    if (isModerator) {
+                        onLoginOkNavigateModerator()                 // Navega a ModeratorDashboard si es moderador
+                    } else {
+                        onLoginOkNavigateHome()                     // Navega a Home si es usuario normal
+                    }
+                }
             }
         }
     }

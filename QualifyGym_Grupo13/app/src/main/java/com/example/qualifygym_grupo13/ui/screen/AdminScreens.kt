@@ -721,7 +721,7 @@ fun DetailedStatCard(
 }
 
 @Composable
-private fun PublicationAdminCard(
+fun PublicationAdminCard(
     publicacion: PublicacionDomain,
     onViewDetail: () -> Unit,
     onToggleVisibility: () -> Unit

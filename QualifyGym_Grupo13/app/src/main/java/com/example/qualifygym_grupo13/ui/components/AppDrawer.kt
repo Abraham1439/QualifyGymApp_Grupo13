@@ -9,9 +9,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons // Íconos Material
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Home // Ícono Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search // Ícono Buscar
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield // Ícono Panel de Admin
 import androidx.compose.material3.* // Material3
@@ -147,7 +149,8 @@ fun defaultDrawerItems(
     onSearch: () -> Unit,      // Acción Buscar
     onSettings: () -> Unit,    // Acción Configuración
     onLogout: () -> Unit,      // Acción Cerrar Sesión
-    onAdminDashboard: (() -> Unit)? = null // Acción Panel de Admin (opcional, solo para admins)
+    onAdminDashboard: (() -> Unit)? = null, // Acción Panel de Admin (opcional, solo para admins)
+    onModeratorDashboard: (() -> Unit)? = null // Acción Panel de Moderador (opcional, solo para moderadores)
 ): List<DrawerItem> {
     val items = mutableListOf<DrawerItem>()
     
@@ -156,7 +159,12 @@ fun defaultDrawerItems(
     
     // Agregar ítem de admin solo si se proporciona el callback
     onAdminDashboard?.let {
-        items.add(DrawerItem("Ir a panel de admin", Icons.Filled.Shield, it)) // Ítem Panel de Admin
+        items.add(DrawerItem("Ir al panel de admin", Icons.Filled.AdminPanelSettings, it)) // Ítem Panel de Admin
+    }
+    
+    // Agregar ítem de moderador solo si se proporciona el callback
+    onModeratorDashboard?.let {
+        items.add(DrawerItem("Ir al panel de moderador", Icons.Filled.Security, it)) // Ítem Panel de Moderador
     }
     
     items.add(DrawerItem("Configuración", Icons.Filled.Settings, onSettings))          // Ítem Configuración
