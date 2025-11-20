@@ -113,6 +113,20 @@ class UsuarioRepository(
         Result.failure(e)
     }
 
+    // Busca un usuario por teléfono verificando en la lista de usuarios
+    suspend fun findUsuarioByPhone(phone: String): Result<UsuarioDto?> = try {
+        val usuariosResult = fetchUsuarios()
+        usuariosResult.fold(
+            onSuccess = { usuarios ->
+                val usuario = usuarios.firstOrNull { it.phone?.trim() == phone.trim() }
+                Result.success(usuario)
+            },
+            onFailure = { error -> Result.failure(error) }
+        )
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
     // Login de usuario usando email (el microservicio ahora acepta email directamente)
     suspend fun login(email: String, password: String): Result<UserDomain> {
         return try {
@@ -210,25 +224,33 @@ class UsuarioRepository(
     suspend fun register(name: String, email: String, phone: String, password: String): Result<Long> {
         return try {
             // Verificar si el email ya existe
-            val existeResult = findUsuarioByEmail(email)
-            val existe = existeResult.getOrNull() != null
+            val existeEmailResult = findUsuarioByEmail(email)
+            val existeEmail = existeEmailResult.getOrNull() != null
             
-            if (existe) {
+            if (existeEmail) {
                 Result.failure(IllegalStateException("El correo ya está registrado"))
             } else {
-                // Crear el usuario usando el endpoint público (no requiere rolId, se asigna automáticamente)
-                val usuarioRegister = UsuarioRegisterDto(
-                    username = name,
-                    password = password,
-                    email = email,
-                    phone = phone
-                )
+                // Verificar si el teléfono ya existe
+                val existePhoneResult = findUsuarioByPhone(phone)
+                val existePhone = existePhoneResult.getOrNull() != null
                 
-                val result = create(usuarioRegister)
-                result.fold(
-                    onSuccess = { usuario -> Result.success(usuario.id) },
-                    onFailure = { error -> Result.failure(error) }
-                )
+                if (existePhone) {
+                    Result.failure(IllegalStateException("El número telefónico ya está registrado"))
+                } else {
+                    // Crear el usuario usando el endpoint público (no requiere rolId, se asigna automáticamente)
+                    val usuarioRegister = UsuarioRegisterDto(
+                        username = name,
+                        password = password,
+                        email = email,
+                        phone = phone
+                    )
+                    
+                    val result = create(usuarioRegister)
+                    result.fold(
+                        onSuccess = { usuario -> Result.success(usuario.id) },
+                        onFailure = { error -> Result.failure(error) }
+                    )
+                }
             }
         } catch (e: Exception) {
             Result.failure(e)
