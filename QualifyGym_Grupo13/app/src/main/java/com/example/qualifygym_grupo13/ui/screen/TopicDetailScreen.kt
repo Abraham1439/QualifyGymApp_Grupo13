@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.qualifygym_grupo13.data.local.user.UserEntity
+import com.example.qualifygym_grupo13.data.domain.UserDomain
 import com.example.qualifygym_grupo13.data.model.Comentario
 import com.example.qualifygym_grupo13.data.model.Tema
 import kotlinx.coroutines.launch
@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 fun TopicDetailScreen(
     tema: Tema,
     comentarios: List<Comentario>,
-    currentUser: UserEntity? = null,
+    currentUser: UserDomain? = null,
     onBackClick: () -> Unit,
     onCommentClick: (String) -> Unit = {},
     onCreateCommentClick: () -> Unit,

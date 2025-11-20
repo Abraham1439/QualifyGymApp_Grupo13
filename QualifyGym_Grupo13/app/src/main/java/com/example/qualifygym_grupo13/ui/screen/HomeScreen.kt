@@ -20,7 +20,8 @@ import androidx.compose.ui.unit.dp
 import com.example.qualifygym_grupo13.data.model.Publicacion
 import com.example.qualifygym_grupo13.data.model.Tema
 import com.example.qualifygym_grupo13.navigation.BottomNavItem
-import com.example.qualifygym_grupo13.data.local.database.AppDatabase
+import com.example.qualifygym_grupo13.data.repository.UsuarioRepository
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,13 +34,13 @@ fun HomeScreen(
     onCreatePublicationClick: () -> Unit,
     onProfileClick: () -> Unit,
 ) {
-    val context = LocalContext.current
-    val db = AppDatabase.getInstance(context)
-    
     // Obtener datos reales de la base de datos
     val publicacionesDb by publicacionViewModel?.allPublicaciones?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
     val temasDb by publicacionViewModel?.allTemas?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
     val currentUser by authViewModel?.currentUser?.collectAsState() ?: remember { mutableStateOf(null) }
+    
+    // Repositorio para obtener usuarios desde el microservicio
+    val usuarioRepository = remember { UsuarioRepository() }
     
     // Filtrar publicaciones: mostrar ocultas solo si es admin
     val publicacionesFiltradas = remember(publicacionesDb, currentUser) {
@@ -53,42 +54,44 @@ fun HomeScreen(
     // Mapa para almacenar nombres de autores
     var autoresMap by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
     
-    // Cargar nombres de los autores de las últimas publicaciones
+    // Cargar nombres de los autores de las últimas publicaciones desde el microservicio
     LaunchedEffect(publicacionesFiltradas) {
         val publicacionesParaMostrar = publicacionesFiltradas.take(10)
         if (publicacionesParaMostrar.isNotEmpty()) {
-            val userIds = publicacionesParaMostrar.map { it.Usuarios_id_usuario }.distinct()
+            val userIds = publicacionesParaMostrar.map { it.usuarioId }.distinct()
             val namesMap = mutableMapOf<Long, String>()
             
             userIds.forEach { userId ->
-                val user = db.userDao().getById(userId)
-                namesMap[userId] = user?.name ?: "Usuario"
+                // Obtener usuario desde el microservicio
+                val userResult = usuarioRepository.fetchUsuarioById(userId)
+                val userName = userResult.getOrNull()?.username ?: "Usuario"
+                namesMap[userId] = userName
             }
             
             autoresMap = namesMap
         }
     }
     
-    // Convertir datos de BD a modelos de UI
+    // Convertir datos de dominio a modelos de UI
     val sampleThemes = remember(temasDb, publicacionesFiltradas) {
-        temasDb.map { temaEntity ->
+        temasDb.map { temaDomain ->
             Tema(
-                id = temaEntity.id_tema.toString(),
-                nombre = temaEntity.nombre_tema,
-                descripcion = "Explora publicaciones sobre ${temaEntity.nombre_tema}",
+                id = temaDomain.idTema.toString(),
+                nombre = temaDomain.nombreTema,
+                descripcion = "Explora publicaciones sobre ${temaDomain.nombreTema}",
                 ubicacion = "",
-                numeroComentarios = publicacionesFiltradas.count { it.Tema_id_tema == temaEntity.id_tema && !it.oculta }
+                numeroComentarios = publicacionesFiltradas.count { it.temaId == temaDomain.idTema && !it.oculta }
             )
         }
     }
     
     val samplePosts = remember(publicacionesFiltradas, autoresMap) {
-        publicacionesFiltradas.take(10).map { pubEntity ->
+        publicacionesFiltradas.take(10).map { pubDomain ->
             Publicacion(
-                id = pubEntity.id_publicacion.toString(),
-                titulo = pubEntity.titulo,
-                autor = autoresMap[pubEntity.Usuarios_id_usuario] ?: "Usuario",
-                contenido = pubEntity.descripcion
+                id = pubDomain.idPublicacion.toString(),
+                titulo = pubDomain.titulo,
+                autor = autoresMap[pubDomain.usuarioId] ?: "Usuario",
+                contenido = pubDomain.descripcion
             )
         }
     }

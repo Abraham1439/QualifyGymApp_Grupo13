@@ -60,14 +60,14 @@ fun PublicationsListScreen(
         if (temaId != null) {
             scope.launch {
                 val tema = publicacionViewModel?.getTemaById(temaId)
-                temaNombre = tema?.nombre_tema ?: "Publicaciones"
+                temaNombre = tema?.nombreTema ?: "Publicaciones"
             }
         }
     }
     
     // Filtrar publicaciones por tema y por visibilidad
     val publicacionesFiltradas = publicacionesDb.filter { 
-        val esMismoTema = it.Tema_id_tema == topicId.toLongOrNull()
+        val esMismoTema = it.temaId == topicId.toLongOrNull()
         val esAdmin = currentUser?.isAdmin == true
         
         // Si es admin, ver todas del tema. Si no, solo las no ocultas
@@ -78,7 +78,7 @@ fun PublicationsListScreen(
     var autoresMap by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
     
     LaunchedEffect(publicacionesFiltradas) {
-        val userIds = publicacionesFiltradas.map { it.Usuarios_id_usuario }.distinct()
+        val userIds = publicacionesFiltradas.map { it.usuarioId }.distinct()
         val namesMap = mutableMapOf<Long, String>()
         
         userIds.forEach { userId ->
@@ -145,10 +145,10 @@ fun PublicationsListScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
                 items(publicacionesFiltradas) { publicacion ->
-                    val autorNombre = autoresMap[publicacion.Usuarios_id_usuario] ?: "Usuario"
+                    val autorNombre = autoresMap[publicacion.usuarioId] ?: "Usuario"
                     
                     ElevatedCard(
-                        onClick = { onOpenPost(publicacion.id_publicacion.toString()) }, 
+                        onClick = { onOpenPost(publicacion.idPublicacion.toString()) }, 
                         modifier = Modifier.fillMaxWidth()
                     ) {
                     Column(Modifier.padding(16.dp)) {
@@ -196,7 +196,7 @@ fun PublicationDetailScreen(
     val imageStorageManager = remember { ImageStorageManager(context) }
     
     // Estados para la publicación y comentarios
-    var publicacion by remember { mutableStateOf<com.example.qualifygym_grupo13.data.local.publicacion.PublicacionEntity?>(null) }
+    var publicacion by remember { mutableStateOf<com.example.qualifygym_grupo13.data.domain.PublicacionDomain?>(null) }
     var autorName by remember { mutableStateOf("Usuario") }
     var isLoading by remember { mutableStateOf(true) }
     var showAdminMenu by remember { mutableStateOf(false) }
@@ -219,7 +219,7 @@ fun PublicationDetailScreen(
                 // Obtener nombre del autor de la publicación
                 publicacion?.let { pub ->
                     scope.launch {
-                        val userResult = usuarioRepository.fetchUsuarioById(pub.Usuarios_id_usuario)
+                        val userResult = usuarioRepository.fetchUsuarioById(pub.usuarioId)
                         autorName = userResult.getOrNull()?.username ?: "Usuario"
                     }
                 }
@@ -234,7 +234,7 @@ fun PublicationDetailScreen(
     // Cargar nombres de todos los usuarios que comentaron (solo cuando cambian los comentarios)
     LaunchedEffect(comentariosDb) {
         if (comentariosDb.isNotEmpty()) {
-            val userIds = comentariosDb.map { comentario -> comentario.Usuarios_id_usuario }.distinct()
+            val userIds = comentariosDb.map { comentario -> comentario.usuarioId }.distinct()
             val namesMap = mutableMapOf<Long, String>()
             
             scope.launch {
@@ -393,7 +393,7 @@ fun PublicationDetailScreen(
                                         onClick = {
                                             scope.launch {
                                                 publicacion?.let { pub ->
-                                                    val result = publicacionViewModel?.ocultarPublicacion(pub.id_publicacion, "Ocultada por administrador")
+                                                    val result = publicacionViewModel?.ocultarPublicacion(pub.idPublicacion, "Ocultada por administrador")
                                                     result?.onSuccess {
                                                         Toast.makeText(context, "Publicación ocultada", Toast.LENGTH_SHORT).show()
                                                         onPublicationHidden()
@@ -416,7 +416,7 @@ fun PublicationDetailScreen(
                                         onClick = {
                                             scope.launch {
                                                 publicacion?.let { pub ->
-                                                    val result = publicacionViewModel?.mostrarPublicacion(pub.id_publicacion)
+                                                    val result = publicacionViewModel?.mostrarPublicacion(pub.idPublicacion)
                                                     result?.onSuccess {
                                                         Toast.makeText(context, "Publicación mostrada", Toast.LENGTH_SHORT).show()
                                                     }?.onFailure {
@@ -439,7 +439,7 @@ fun PublicationDetailScreen(
                                         onClick = {
                                             scope.launch {
                                                 publicacion?.let { pub ->
-                                                    publicacionViewModel?.deletePublicacion(pub.id_publicacion)
+                                                    publicacionViewModel?.deletePublicacion(pub.idPublicacion)
                                                     Toast.makeText(context, "Publicación eliminada", Toast.LENGTH_SHORT).show()
                                                     onPublicationDeleted()
                                                 }
@@ -574,14 +574,14 @@ fun PublicationDetailScreen(
                     }
                 } else {
             // Lista de comentarios
-                    items(comentariosDb) { comentarioEntity ->
+                    items(comentariosDb) { comentarioDomain ->
                         // Obtener el nombre del autor del mapa pre-cargado
-                        val comentarioAutorName = userNamesMap[comentarioEntity.Usuarios_id_usuario] ?: "Usuario"
+                        val comentarioAutorName = userNamesMap[comentarioDomain.usuarioId] ?: "Usuario"
                         
                 CommentCard(
-                            comentario = comentarioEntity.comentario,
+                            comentario = comentarioDomain.comentario,
                             autor = comentarioAutorName,
-                            fecha = formatDate(comentarioEntity.fecha_registro)
+                            fecha = formatDate(comentarioDomain.fechaRegistro)
                 )
                     }
             }

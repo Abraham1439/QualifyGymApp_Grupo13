@@ -45,7 +45,6 @@ Piensa en él como una “lona base” sobre la cual vas a pintar tu UI.
 fun AppRoot() { // Raíz de la app para separar responsabilidades (se conserva)
     // ====== NUEVO: construcción de dependencias (Composition Root) ======
     val context = LocalContext.current.applicationContext
-    // Obtenemos el applicationContext para construir la base de datos de Room.
 
     // NUEVO: Usamos UsuarioRepository que se conecta a las APIs
     val usuarioRepository = UsuarioRepository()

@@ -1,13 +1,13 @@
 package com.example.qualifygym_grupo13.data.remote.dto
 
-import com.example.qualifygym_grupo13.data.local.comentario.ComentarioEntity
-import com.example.qualifygym_grupo13.data.local.publicacion.PublicacionEntity
-import com.example.qualifygym_grupo13.data.local.tema.TemaEntity
+import com.example.qualifygym_grupo13.data.domain.ComentarioDomain
+import com.example.qualifygym_grupo13.data.domain.PublicacionDomain
+import com.example.qualifygym_grupo13.data.domain.TemaDomain
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-// Función helper para convertir PublicacionDto a PublicacionEntity
-fun PublicacionDto.toPublicacionEntity(): PublicacionEntity {
+// Función helper para convertir PublicacionDto a PublicacionDomain
+fun PublicacionDto.toPublicacionDomain(): PublicacionDomain {
     // Convertir fecha de String "dd-MM-yyyy HH:mm" a timestamp
     val fechaTimestamp = try {
         val sdf = SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault())
@@ -25,31 +25,31 @@ fun PublicacionDto.toPublicacionEntity(): PublicacionEntity {
         }
     }
     
-    return PublicacionEntity(
-        id_publicacion = idPublicacion,
+    return PublicacionDomain(
+        idPublicacion = idPublicacion,
         titulo = titulo,
         fecha = fechaTimestamp,
         descripcion = descripcion,
         oculta = oculta,
-        fecha_baneo = fechaBaneoTimestamp,
-        motivo_baneo = motivoBaneo,
-        Usuarios_id_usuario = usuarioId,
-        Tema_id_tema = temaId,
+        fechaBaneo = fechaBaneoTimestamp,
+        motivoBaneo = motivoBaneo,
+        usuarioId = usuarioId,
+        temaId = temaId,
         imageUrl = imageUrl
     )
 }
 
-// Función helper para convertir TemaDto a TemaEntity
-fun TemaDto.toTemaEntity(): TemaEntity {
-    return TemaEntity(
-        id_tema = idTema,
-        nombre_tema = nombreTema,
-        Estado_id_estado = estadoId
+// Función helper para convertir TemaDto a TemaDomain
+fun TemaDto.toTemaDomain(): TemaDomain {
+    return TemaDomain(
+        idTema = idTema,
+        nombreTema = nombreTema,
+        estadoId = estadoId
     )
 }
 
-// Función helper para convertir ComentarioDto a ComentarioEntity
-fun ComentarioDto.toComentarioEntity(): ComentarioEntity {
+// Función helper para convertir ComentarioDto a ComentarioDomain
+fun ComentarioDto.toComentarioDomain(): ComentarioDomain {
     // Convertir fecha de String "dd-MM-yyyy HH:mm" a timestamp
     val fechaTimestamp = try {
         val sdf = SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault())
@@ -67,15 +67,15 @@ fun ComentarioDto.toComentarioEntity(): ComentarioEntity {
         }
     }
     
-    return ComentarioEntity(
-        id_comentario = idComentario,
+    return ComentarioDomain(
+        idComentario = idComentario,
         comentario = comentario,
-        fecha_registro = fechaTimestamp,
+        fechaRegistro = fechaTimestamp,
         oculto = oculto,
-        fecha_baneo = fechaBaneoTimestamp,
-        motivo_baneo = motivoBaneo,
-        Usuarios_id_usuario = usuarioId,
-        Publicacion_id_publicacion = publicacionId
+        fechaBaneo = fechaBaneoTimestamp,
+        motivoBaneo = motivoBaneo,
+        usuarioId = usuarioId,
+        publicacionId = publicacionId
     )
 }
 

@@ -133,12 +133,12 @@ private fun ProfileHeader(name: String, email: String) {
 
 @Composable
 private fun MyReviewsContent(
-    userPublicaciones: List<com.example.qualifygym_grupo13.data.local.publicacion.PublicacionEntity>,
+    userPublicaciones: List<com.example.qualifygym_grupo13.data.domain.PublicacionDomain>,
     isAdmin: Boolean,
     onPublicationClick: (String) -> Unit
 ) {
-    val context = LocalContext.current
-    val db = com.example.qualifygym_grupo13.data.local.database.AppDatabase.getInstance(context)
+    // Repositorio para obtener usuarios desde el microservicio
+    val usuarioRepository = remember { com.example.qualifygym_grupo13.data.repository.UsuarioRepository() }
     
     // Filtrar publicaciones: Si es admin, ver todas. Si no, solo las no ocultas
     val publicacionesFiltradas = if (isAdmin) {
@@ -150,26 +150,28 @@ private fun MyReviewsContent(
     // Mapa para almacenar los nombres de autores
     var autoresMap by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
     
-    // Cargar los nombres de los autores
+    // Cargar los nombres de los autores desde el microservicio
     LaunchedEffect(publicacionesFiltradas) {
-        val userIds = publicacionesFiltradas.map { it.Usuarios_id_usuario }.distinct()
+        val userIds = publicacionesFiltradas.map { it.usuarioId }.distinct()
         val namesMap = mutableMapOf<Long, String>()
         
         userIds.forEach { userId ->
-            val user = db.userDao().getById(userId)
-            namesMap[userId] = user?.name ?: "Usuario"
+            // Obtener usuario desde el microservicio
+            val userResult = usuarioRepository.fetchUsuarioById(userId)
+            val userName = userResult.getOrNull()?.username ?: "Usuario"
+            namesMap[userId] = userName
         }
         
         autoresMap = namesMap
     }
     
-    // Convertir PublicacionEntity a Publicacion (modelo de UI)
-    val publicacionesUI = publicacionesFiltradas.map { entity ->
+    // Convertir PublicacionDomain a Publicacion (modelo de UI)
+    val publicacionesUI = publicacionesFiltradas.map { domain ->
         Publicacion(
-            id = entity.id_publicacion.toString(),
-            titulo = entity.titulo,
+            id = domain.idPublicacion.toString(),
+            titulo = domain.titulo,
             autor = "tú",
-            contenido = entity.descripcion
+            contenido = domain.descripcion
         )
     }
 

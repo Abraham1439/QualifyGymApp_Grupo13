@@ -11,9 +11,9 @@ import com.example.qualifygym_grupo13.domain.validation.*             // Importa
 
 // 1.- 🔁 NUEVO: importamos el repositorio que habla con las APIs
 import com.example.qualifygym_grupo13.data.repository.UsuarioRepository
-import com.example.qualifygym_grupo13.data.local.user.UserEntity
+import com.example.qualifygym_grupo13.data.domain.UserDomain
 import com.example.qualifygym_grupo13.data.preferences.SessionManager
-import com.example.qualifygym_grupo13.data.repository.toUserEntity
+import com.example.qualifygym_grupo13.data.repository.toUserDomain
 
 // ----------------- ESTADOS DE UI (observable con StateFlow) -----------------
 
@@ -69,8 +69,8 @@ class AuthViewModel(
     val register: StateFlow<RegisterUiState> = _register        // Exposición inmutable
     
     // Estado del usuario actual (después de login exitoso)
-    private val _currentUser = MutableStateFlow<UserEntity?>(null)
-    val currentUser: StateFlow<UserEntity?> = _currentUser
+    private val _currentUser = MutableStateFlow<UserDomain?>(null)
+    val currentUser: StateFlow<UserDomain?> = _currentUser
     
     // Estado para indicar si se está verificando la sesión guardada
     private val _isCheckingSession = MutableStateFlow(true)
@@ -158,7 +158,7 @@ class AuthViewModel(
                             val userByEmail = emailResult.getOrNull()
                             
                             if (userByEmail != null) {
-                                _currentUser.value = userByEmail.toUserEntity()
+                                _currentUser.value = userByEmail.toUserDomain()
                                 // Actualizar el ID de sesión por si cambió
                                 sessionManager.saveUserSession(userByEmail.id, userEmail)
                             } else {
@@ -269,7 +269,7 @@ class AuthViewModel(
     }
 
     // Actualizar perfil del usuario (requiere contraseña actual para validar)
-    suspend fun updateUserProfile(name: String, email: String, phone: String, currentPassword: String? = null): Result<UserEntity> {
+    suspend fun updateUserProfile(name: String, email: String, phone: String, currentPassword: String? = null): Result<UserDomain> {
         val user = _currentUser.value
         return if (user != null) {
             // Si no se proporciona contraseña, retornar error
@@ -297,7 +297,7 @@ class AuthViewModel(
     }
 
     // Cambiar contraseña del usuario
-    suspend fun changeUserPassword(currentPassword: String, newPassword: String): Result<UserEntity> {
+    suspend fun changeUserPassword(currentPassword: String, newPassword: String): Result<UserDomain> {
         val user = _currentUser.value
         return if (user != null) {
             val result = repository.changePassword(
@@ -318,7 +318,7 @@ class AuthViewModel(
     }
 
     // Actualizar foto de perfil del usuario
-    suspend fun updateUserProfilePhoto(photoPath: String?): Result<UserEntity> {
+    suspend fun updateUserProfilePhoto(photoPath: String?): Result<UserDomain> {
         val user = _currentUser.value
         return if (user != null) {
             val result = repository.updateProfilePhoto(

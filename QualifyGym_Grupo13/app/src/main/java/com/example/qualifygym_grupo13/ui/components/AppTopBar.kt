@@ -23,7 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.qualifygym_grupo13.data.local.user.UserEntity
+import com.example.qualifygym_grupo13.data.domain.UserDomain
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +32,7 @@ fun AppTopBar(
     onHome: () -> Unit,       // Navega a Home
     onLogin: () -> Unit,      // Navega a Login
     onRegister: () -> Unit,   // Navega a Registro
-    currentUser: UserEntity? = null // Usuario actual para mostrar indicador de admin
+    currentUser: UserDomain? = null // Usuario actual para mostrar indicador de admin
 ) {
 
     CenterAlignedTopAppBar( // Barra alineada al centro

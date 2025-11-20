@@ -1,6 +1,6 @@
 package com.example.qualifygym_grupo13.data.repository
 
-import com.example.qualifygym_grupo13.data.local.user.UserEntity
+import com.example.qualifygym_grupo13.data.domain.UserDomain
 import com.example.qualifygym_grupo13.data.remote.RemoteModule
 import com.example.qualifygym_grupo13.data.remote.UsuarioApi
 import com.example.qualifygym_grupo13.data.remote.dto.LoginRequestDto
@@ -9,9 +9,9 @@ import com.example.qualifygym_grupo13.data.remote.dto.UsuarioDto
 import com.example.qualifygym_grupo13.data.remote.dto.UsuarioRegisterDto
 import retrofit2.HttpException
 
-// Función helper para convertir UsuarioDto a UserEntity
-fun UsuarioDto.toUserEntity(phone: String? = null, password: String = "", photoUrl: String? = null): UserEntity {
-    return UserEntity(
+// Función helper para convertir UsuarioDto a UserDomain
+fun UsuarioDto.toUserDomain(phone: String? = null, password: String = "", photoUrl: String? = null): UserDomain {
+    return UserDomain(
         id = this.id,
         name = this.username,
         email = this.email,
@@ -114,7 +114,7 @@ class UsuarioRepository(
     }
 
     // Login de usuario usando email (el microservicio ahora acepta email directamente)
-    suspend fun login(email: String, password: String): Result<UserEntity> {
+    suspend fun login(email: String, password: String): Result<UserDomain> {
         return try {
             // Hacer login directamente con email y password
             val loginRequest = LoginRequestDto(email.trim(), password)
@@ -124,12 +124,12 @@ class UsuarioRepository(
                 // Cerrar el ResponseBody para liberar recursos (el microservicio devuelve "Login exitoso" como texto)
                 resp.body()?.close()
                 
-                // Si el login es exitoso, obtener el usuario por email para construir UserEntity
+                // Si el login es exitoso, obtener el usuario por email para construir UserDomain
                 val usuarioResult = findUsuarioByEmail(email.trim())
                 val usuario = usuarioResult.getOrNull()
                 
                 if (usuario != null) {
-                    Result.success(usuario.toUserEntity())
+                    Result.success(usuario.toUserDomain())
                 } else {
                     // Login exitoso pero no se pudo obtener el usuario (caso raro)
                     Result.failure(IllegalStateException("Login exitoso pero no se pudo obtener la información del usuario"))
@@ -189,9 +189,9 @@ class UsuarioRepository(
     }
 
     // Obtener usuario por ID con mejor manejo de errores
-    suspend fun getUserById(userId: Long): UserEntity? = try {
+    suspend fun getUserById(userId: Long): UserDomain? = try {
         val result = fetchUsuarioById(userId)
-        result.getOrNull()?.toUserEntity()
+        result.getOrNull()?.toUserDomain()
     } catch (e: retrofit2.HttpException) {
         if (e.code() == 404) {
             null // Usuario no encontrado
@@ -236,7 +236,7 @@ class UsuarioRepository(
     }
 
     // Actualizar perfil del usuario (requiere contraseña actual para validar)
-    suspend fun updateProfile(userId: Long, newName: String, newEmail: String, newPhone: String, currentPassword: String): Result<UserEntity> {
+    suspend fun updateProfile(userId: Long, newName: String, newEmail: String, newPhone: String, currentPassword: String): Result<UserDomain> {
         return try {
             // Obtener el usuario actual
             val currentUserResult = fetchUsuarioById(userId)
@@ -268,7 +268,7 @@ class UsuarioRepository(
                             
                             val result = update(userId, usuarioUpdate)
                             result.fold(
-                                onSuccess = { usuario -> Result.success(usuario.toUserEntity(phone = newPhone)) },
+                                onSuccess = { usuario -> Result.success(usuario.toUserDomain(phone = newPhone)) },
                                 onFailure = { error -> Result.failure(error) }
                             )
                         }
@@ -284,7 +284,7 @@ class UsuarioRepository(
                         
                         val result = update(userId, usuarioUpdate)
                         result.fold(
-                            onSuccess = { usuario -> Result.success(usuario.toUserEntity(phone = newPhone)) },
+                            onSuccess = { usuario -> Result.success(usuario.toUserDomain(phone = newPhone)) },
                             onFailure = { error -> Result.failure(error) }
                         )
                     }
@@ -296,7 +296,7 @@ class UsuarioRepository(
     }
 
     // Cambiar contraseña (requiere implementación en el microservicio o usar update)
-    suspend fun changePassword(userId: Long, currentPassword: String, newPassword: String): Result<UserEntity> {
+    suspend fun changePassword(userId: Long, currentPassword: String, newPassword: String): Result<UserDomain> {
         return try {
             // Obtener el usuario actual
             val currentUserResult = fetchUsuarioById(userId)
@@ -325,7 +325,7 @@ class UsuarioRepository(
                         
                         val result = update(userId, usuarioUpdate)
                         result.fold(
-                            onSuccess = { usuario -> Result.success(usuario.toUserEntity()) },
+                            onSuccess = { usuario -> Result.success(usuario.toUserDomain()) },
                             onFailure = { error -> Result.failure(error) }
                         )
                     }
@@ -337,7 +337,7 @@ class UsuarioRepository(
     }
 
     // Actualizar foto de perfil (esto se maneja localmente, no en el microservicio)
-    suspend fun updateProfilePhoto(userId: Long, photoPath: String?): Result<UserEntity> {
+    suspend fun updateProfilePhoto(userId: Long, photoPath: String?): Result<UserDomain> {
         return try {
             val currentUserResult = fetchUsuarioById(userId)
             val currentUser = currentUserResult.getOrNull()
@@ -346,7 +346,7 @@ class UsuarioRepository(
                 Result.failure(IllegalArgumentException("Usuario no encontrado"))
             } else {
                 // La foto se guarda localmente, solo retornamos el usuario con la nueva foto
-                Result.success(currentUser.toUserEntity(photoUrl = photoPath))
+                Result.success(currentUser.toUserDomain(photoUrl = photoPath))
             }
         } catch (e: Exception) {
             Result.failure(e)

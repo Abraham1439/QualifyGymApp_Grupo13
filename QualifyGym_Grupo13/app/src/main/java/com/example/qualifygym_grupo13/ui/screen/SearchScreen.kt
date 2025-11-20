@@ -32,15 +32,15 @@ fun SearchScreen(
     val temasDb by publicacionViewModel?.allTemas?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
     val publicacionesDb by publicacionViewModel?.allPublicaciones?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
     
-    // Convertir temas de BD a modelos UI (sin remember para que se actualice siempre)
+    // Convertir temas de dominio a modelos UI (sin remember para que se actualice siempre)
     val allThemes = if (temasDb.isNotEmpty()) {
-        temasDb.map { temaEntity ->
+        temasDb.map { temaDomain ->
             Tema(
-                id = temaEntity.id_tema.toString(),
-                nombre = temaEntity.nombre_tema,
-                descripcion = "Explora publicaciones sobre ${temaEntity.nombre_tema}",
+                id = temaDomain.idTema.toString(),
+                nombre = temaDomain.nombreTema,
+                descripcion = "Explora publicaciones sobre ${temaDomain.nombreTema}",
                 ubicacion = "",
-                numeroComentarios = publicacionesDb.count { it.Tema_id_tema == temaEntity.id_tema && !it.oculta }
+                numeroComentarios = publicacionesDb.count { it.temaId == temaDomain.idTema && !it.oculta }
             )
         }
     } else {

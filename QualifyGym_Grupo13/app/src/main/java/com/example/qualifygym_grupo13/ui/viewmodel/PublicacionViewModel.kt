@@ -2,12 +2,12 @@ package com.example.qualifygym_grupo13.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.qualifygym_grupo13.data.local.comentario.ComentarioEntity
-import com.example.qualifygym_grupo13.data.local.publicacion.PublicacionEntity
-import com.example.qualifygym_grupo13.data.local.tema.TemaEntity
-import com.example.qualifygym_grupo13.data.remote.dto.toComentarioEntity
-import com.example.qualifygym_grupo13.data.remote.dto.toPublicacionEntity
-import com.example.qualifygym_grupo13.data.remote.dto.toTemaEntity
+import com.example.qualifygym_grupo13.data.domain.ComentarioDomain
+import com.example.qualifygym_grupo13.data.domain.PublicacionDomain
+import com.example.qualifygym_grupo13.data.domain.TemaDomain
+import com.example.qualifygym_grupo13.data.remote.dto.toComentarioDomain
+import com.example.qualifygym_grupo13.data.remote.dto.toPublicacionDomain
+import com.example.qualifygym_grupo13.data.remote.dto.toTemaDomain
 import com.example.qualifygym_grupo13.data.repository.ComentarioRepository
 import com.example.qualifygym_grupo13.data.repository.PublicacionRepository
 import com.example.qualifygym_grupo13.data.repository.TemaRepository
@@ -24,12 +24,12 @@ class PublicacionViewModel(
 ) : ViewModel() {
 
     // Lista de todas las publicaciones
-    private val _allPublicaciones = MutableStateFlow<List<PublicacionEntity>>(emptyList())
-    val allPublicaciones: StateFlow<List<PublicacionEntity>> = _allPublicaciones
+    private val _allPublicaciones = MutableStateFlow<List<PublicacionDomain>>(emptyList())
+    val allPublicaciones: StateFlow<List<PublicacionDomain>> = _allPublicaciones
 
     // Lista de todos los temas
-    private val _allTemas = MutableStateFlow<List<TemaEntity>>(emptyList())
-    val allTemas: StateFlow<List<TemaEntity>> = _allTemas
+    private val _allTemas = MutableStateFlow<List<TemaDomain>>(emptyList())
+    val allTemas: StateFlow<List<TemaDomain>> = _allTemas
     
     init {
         loadAllPublicaciones()
@@ -40,7 +40,7 @@ class PublicacionViewModel(
         viewModelScope.launch {
             val result = publicacionRepository.fetchPublicaciones()
             result.onSuccess { dtos ->
-                _allPublicaciones.value = dtos.map { it.toPublicacionEntity() }
+                _allPublicaciones.value = dtos.map { it.toPublicacionDomain() }
             }.onFailure {
                 _errorMessage.value = "Error al cargar publicaciones: ${it.message}"
             }
@@ -51,7 +51,7 @@ class PublicacionViewModel(
         viewModelScope.launch {
             val result = temaRepository.fetchTemas()
             result.onSuccess { dtos ->
-                _allTemas.value = dtos.map { it.toTemaEntity() }
+                _allTemas.value = dtos.map { it.toTemaDomain() }
             }.onFailure {
                 _errorMessage.value = "Error al cargar temas: ${it.message}"
             }
@@ -71,8 +71,8 @@ class PublicacionViewModel(
     val successMessage: StateFlow<String?> = _successMessage
 
     // Publicaciones del usuario actual
-    private val _userPublicaciones = MutableStateFlow<List<PublicacionEntity>>(emptyList())
-    val userPublicaciones: StateFlow<List<PublicacionEntity>> = _userPublicaciones
+    private val _userPublicaciones = MutableStateFlow<List<PublicacionDomain>>(emptyList())
+    val userPublicaciones: StateFlow<List<PublicacionDomain>> = _userPublicaciones
 
     // Crear una nueva publicación
     suspend fun createPublicacion(
@@ -131,7 +131,7 @@ class PublicacionViewModel(
             _isLoading.value = true
             val result = publicacionRepository.fetchPublicacionesPorUsuario(userId)
             result.onSuccess { dtos ->
-                _userPublicaciones.value = dtos.map { it.toPublicacionEntity() }
+                _userPublicaciones.value = dtos.map { it.toPublicacionDomain() }
             }.onFailure {
                 _errorMessage.value = "Error al cargar publicaciones: ${it.message}"
             }
@@ -140,39 +140,39 @@ class PublicacionViewModel(
     }
 
     // Buscar publicaciones por query
-    fun searchPublicaciones(query: String): StateFlow<List<PublicacionEntity>> {
-        val flow = MutableStateFlow<List<PublicacionEntity>>(emptyList())
+    fun searchPublicaciones(query: String): StateFlow<List<PublicacionDomain>> {
+        val flow = MutableStateFlow<List<PublicacionDomain>>(emptyList())
         viewModelScope.launch {
             val result = publicacionRepository.buscarPublicaciones(query)
             result.onSuccess { dtos ->
-                flow.value = dtos.map { it.toPublicacionEntity() }
+                flow.value = dtos.map { it.toPublicacionDomain() }
             }
         }
         return flow
     }
 
     // Obtener publicaciones por tema
-    fun getPublicacionesByTema(temaId: Long): StateFlow<List<PublicacionEntity>> {
-        val flow = MutableStateFlow<List<PublicacionEntity>>(emptyList())
+    fun getPublicacionesByTema(temaId: Long): StateFlow<List<PublicacionDomain>> {
+        val flow = MutableStateFlow<List<PublicacionDomain>>(emptyList())
         viewModelScope.launch {
             val result = publicacionRepository.fetchPublicacionesPorTema(temaId)
             result.onSuccess { dtos ->
-                flow.value = dtos.map { it.toPublicacionEntity() }
+                flow.value = dtos.map { it.toPublicacionDomain() }
             }
         }
         return flow
     }
 
     // Obtener una publicación específica por ID
-    suspend fun getPublicacionById(id: Long): PublicacionEntity? {
+    suspend fun getPublicacionById(id: Long): PublicacionDomain? {
         val result = publicacionRepository.fetchPublicacionById(id)
-        return result.getOrNull()?.toPublicacionEntity()
+        return result.getOrNull()?.toPublicacionDomain()
     }
 
     // Obtener un tema específico por ID
-    suspend fun getTemaById(id: Long): TemaEntity? {
+    suspend fun getTemaById(id: Long): TemaDomain? {
         val result = temaRepository.fetchTemaById(id)
-        return result.getOrNull()?.toTemaEntity()
+        return result.getOrNull()?.toTemaDomain()
     }
 
     // Eliminar una publicación
@@ -208,12 +208,12 @@ class PublicacionViewModel(
     }
 
     // Obtener comentarios de una publicación específica
-    fun getComentariosByPublicacionId(publicacionId: Long): StateFlow<List<ComentarioEntity>> {
-        val flow = MutableStateFlow<List<ComentarioEntity>>(emptyList())
+    fun getComentariosByPublicacionId(publicacionId: Long): StateFlow<List<ComentarioDomain>> {
+        val flow = MutableStateFlow<List<ComentarioDomain>>(emptyList())
         viewModelScope.launch {
             val result = comentarioRepository.fetchComentariosPorPublicacion(publicacionId)
             result.onSuccess { dtos ->
-                flow.value = dtos.map { it.toComentarioEntity() }
+                flow.value = dtos.map { it.toComentarioDomain() }
             }
         }
         return flow

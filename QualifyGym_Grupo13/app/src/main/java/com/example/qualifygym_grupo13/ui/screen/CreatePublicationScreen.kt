@@ -66,12 +66,12 @@ fun CreatePublicationScreen(
     
     val currentUser by authViewModel?.currentUser?.collectAsState() ?: remember { mutableStateOf(null) }
     val temasRaw by publicacionViewModel?.allTemas?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
-    val temas = remember(temasRaw) { temasRaw.distinctBy { it.nombre_tema } }
+    val temas = remember(temasRaw) { temasRaw.distinctBy { it.nombreTema } }
     val isLoading by publicacionViewModel?.isLoading?.collectAsState() ?: remember { mutableStateOf(false) }
     val errorMessage by publicacionViewModel?.errorMessage?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
     val successMessage by publicacionViewModel?.successMessage?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
     
-    var selectedTema by remember { mutableStateOf<com.example.qualifygym_grupo13.data.local.tema.TemaEntity?>(null) }
+    var selectedTema by remember { mutableStateOf<com.example.qualifygym_grupo13.data.domain.TemaDomain?>(null) }
     var expanded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
@@ -170,7 +170,7 @@ fun CreatePublicationScreen(
             onExpandedChange = { expanded = !expanded }
         ) {
             OutlinedTextField(
-                value = selectedTema?.nombre_tema ?: "",
+                value = selectedTema?.nombreTema ?: "",
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Tema") },
@@ -189,7 +189,7 @@ fun CreatePublicationScreen(
             ) {
                 temas.forEach { tema ->
                     DropdownMenuItem(
-                        text = { Text(tema.nombre_tema) },
+                        text = { Text(tema.nombreTema) },
                         onClick = {
                             selectedTema = tema
                             expanded = false
@@ -372,7 +372,7 @@ fun CreatePublicationScreen(
                             titulo = title,
                             descripcion = desc,
                             userId = currentUser!!.id,
-                            temaId = selectedTema!!.id_tema,
+                            temaId = selectedTema!!.idTema,
                             imageUrl = null // Primero sin imagen
                         )
                         

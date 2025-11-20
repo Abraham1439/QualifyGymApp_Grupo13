@@ -461,7 +461,7 @@ fun AppNavGraph(
                     val scope = rememberCoroutineScope()
                     
                     // Obtener información de la publicación para mostrar en la pantalla
-                    var publicacionInfo by remember { mutableStateOf<com.example.qualifygym_grupo13.data.local.publicacion.PublicacionEntity?>(null) }
+                    var publicacionInfo by remember { mutableStateOf<com.example.qualifygym_grupo13.data.domain.PublicacionDomain?>(null) }
                     
                     LaunchedEffect(postId) {
                         val pubId = postId.toLongOrNull()
@@ -474,7 +474,7 @@ fun AppNavGraph(
                     val tema = remember(publicacionInfo) {
                         publicacionInfo?.let { pub ->
                             com.example.qualifygym_grupo13.data.model.Tema(
-                                id = pub.id_publicacion.toString(),
+                                id = pub.idPublicacion.toString(),
                                 nombre = pub.titulo,
                                 descripcion = pub.descripcion,
                                 ubicacion = "Publicación",
@@ -519,7 +519,7 @@ fun AppNavGraph(
                                 
                                 if (result.isSuccess) {
                                     Toast.makeText(context, "Comentario publicado exitosamente", Toast.LENGTH_SHORT).show()
-                                    // Esperar un momento para que Room actualice el Flow antes de volver
+                                    // Esperar un momento para que el microservicio procese antes de volver
                                     kotlinx.coroutines.delay(300)
                                     navController.popBackStack()
                                 } else {
