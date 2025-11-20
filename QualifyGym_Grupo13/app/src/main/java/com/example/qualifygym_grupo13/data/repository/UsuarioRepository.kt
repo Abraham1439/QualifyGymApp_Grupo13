@@ -56,9 +56,7 @@ class UsuarioRepository(
                 401 -> "No autorizado. El endpoint de registro debería ser público. Detalles: $errorBody"
                 400 -> {
                     // Intentar extraer mensaje más específico
-                    if (errorBody.contains("username")) {
-                        "El nombre de usuario ya está registrado o es inválido."
-                    } else if (errorBody.contains("email")) {
+                    if (errorBody.contains("email")) {
                         "El email ya está registrado o es inválido."
                     } else {
                         "Datos inválidos: $errorBody"
