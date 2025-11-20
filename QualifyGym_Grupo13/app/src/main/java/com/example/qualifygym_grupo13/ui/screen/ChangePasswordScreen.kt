@@ -288,8 +288,12 @@ fun ChangePasswordScreen(
                             val errorMsg = result?.exceptionOrNull()?.message ?: "Error al cambiar la contraseña"
                             if (errorMsg.contains("contraseña actual no coincide")) {
                                 currentPasswordError = errorMsg
+                                // No mostrar este error en el cuadro rojo, solo debajo del campo de contraseña actual
+                                errorMessage = ""
+                            } else {
+                                // Solo mostrar otros errores en el cuadro rojo
+                                errorMessage = errorMsg
                             }
-                            errorMessage = errorMsg
                         }
                     }
                 },

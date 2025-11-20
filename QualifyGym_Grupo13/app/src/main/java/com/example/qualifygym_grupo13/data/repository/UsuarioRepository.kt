@@ -255,8 +255,8 @@ class UsuarioRepository(
         }
     }
 
-    // Actualizar perfil del usuario (requiere contraseña actual para validar)
-    suspend fun updateProfile(userId: Long, newName: String, newEmail: String, newPhone: String, currentPassword: String): Result<UserDomain> {
+    // Actualizar perfil del usuario (la contraseña es opcional - solo se valida si se proporciona)
+    suspend fun updateProfile(userId: Long, newName: String, newEmail: String, newPhone: String, currentPassword: String? = null): Result<UserDomain> {
         return try {
             // Obtener el usuario actual
             val currentUserResult = fetchUsuarioById(userId)
@@ -265,50 +265,39 @@ class UsuarioRepository(
             if (currentUser == null) {
                 Result.failure(IllegalArgumentException("Usuario no encontrado"))
             } else {
-                // Verificar la contraseña actual haciendo login
-                val loginResult = login(currentUser.email, currentPassword)
-                if (loginResult.isFailure) {
-                    Result.failure(IllegalArgumentException("La contraseña actual no coincide"))
-                } else {
-                    // Si el email cambió, verificar que no esté en uso
-                    if (newEmail != currentUser.email) {
-                        val emailExistsResult = findUsuarioByEmail(newEmail)
-                        val emailExists = emailExistsResult.getOrNull()
-                        if (emailExists != null && emailExists.id != userId) {
-                            Result.failure(IllegalStateException("El correo ya está siendo utilizado por otro usuario"))
-                        } else {
-                            // Actualizar el usuario (usamos la contraseña actual ya que el microservicio la requiere)
-                            val usuarioUpdate = UsuarioCreateDto(
-                                username = newName,
-                                password = currentPassword, // Usamos la contraseña actual (no la cambiamos)
-                                email = newEmail,
-                                phone = newPhone,
-                                rolId = currentUser.rol?.id ?: 2L
-                            )
-                            
-                            val result = update(userId, usuarioUpdate)
-                            result.fold(
-                                onSuccess = { usuario -> Result.success(usuario.toUserDomain(phone = newPhone)) },
-                                onFailure = { error -> Result.failure(error) }
-                            )
-                        }
-                    } else {
-                        // Email no cambió, solo actualizar
-                        val usuarioUpdate = UsuarioCreateDto(
-                            username = newName,
-                            password = currentPassword,
-                            email = newEmail,
-                            phone = newPhone,
-                            rolId = currentUser.rol?.id ?: 2L
-                        )
-                        
-                        val result = update(userId, usuarioUpdate)
-                        result.fold(
-                            onSuccess = { usuario -> Result.success(usuario.toUserDomain(phone = newPhone)) },
-                            onFailure = { error -> Result.failure(error) }
-                        )
+                // Si se proporciona contraseña, validarla; si no, continuar sin validar
+                if (currentPassword != null && currentPassword.isNotBlank()) {
+                    val loginResult = login(currentUser.email, currentPassword)
+                    if (loginResult.isFailure) {
+                        return Result.failure(IllegalArgumentException("La contraseña actual no coincide"))
                     }
                 }
+                
+                // Si el email cambió, verificar que no esté en uso
+                if (newEmail != currentUser.email) {
+                    val emailExistsResult = findUsuarioByEmail(newEmail)
+                    val emailExists = emailExistsResult.getOrNull()
+                    if (emailExists != null && emailExists.id != userId) {
+                        return Result.failure(IllegalStateException("El correo ya está siendo utilizado por otro usuario"))
+                    }
+                }
+                
+                // Actualizar el usuario
+                // Si no se proporciona contraseña, usar una cadena vacía (el microservicio no la actualizará)
+                val passwordToUse = currentPassword?.takeIf { it.isNotBlank() } ?: ""
+                val usuarioUpdate = UsuarioCreateDto(
+                    username = newName,
+                    password = passwordToUse, // Si está vacía, el microservicio no actualizará la contraseña
+                    email = newEmail,
+                    phone = newPhone,
+                    rolId = currentUser.rol?.id ?: 2L
+                )
+                
+                val result = update(userId, usuarioUpdate)
+                result.fold(
+                    onSuccess = { usuario -> Result.success(usuario.toUserDomain(phone = newPhone)) },
+                    onFailure = { error -> Result.failure(error) }
+                )
             }
         } catch (e: Exception) {
             Result.failure(e)

@@ -294,21 +294,17 @@ class AuthViewModel(
         }
     }
 
-    // Actualizar perfil del usuario (requiere contraseña actual para validar)
+    // Actualizar perfil del usuario (la contraseña es opcional - solo se requiere si se quiere cambiar)
     suspend fun updateUserProfile(name: String, email: String, phone: String, currentPassword: String? = null): Result<UserDomain> {
         val user = _currentUser.value
         return if (user != null) {
-            // Si no se proporciona contraseña, retornar error
-            if (currentPassword == null || currentPassword.isBlank()) {
-                return Result.failure(IllegalArgumentException("Se requiere la contraseña actual para actualizar el perfil"))
-            }
-            
+            // La contraseña es opcional - si no se proporciona, solo se actualizan nombre, email y teléfono
             val result = repository.updateProfile(
                 userId = user.id,
                 newName = name.trim(),
                 newEmail = email.trim(),
                 newPhone = phone.trim(),
-                currentPassword = currentPassword
+                currentPassword = currentPassword ?: "" // Pasar cadena vacía si no se proporciona
             )
             
             // Si la actualización fue exitosa, actualizar el usuario actual en el ViewModel
