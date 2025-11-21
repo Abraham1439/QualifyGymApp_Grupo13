@@ -14,6 +14,7 @@ object RemoteModule {
     private const val TEMA_BASE_URL = "https://pjrm5vf1-8085.brs.devtunnels.ms/"
     private const val COMENTARIO_BASE_URL = "https://pjrm5vf1-8082.brs.devtunnels.ms/"
     private const val PUBLICACION_BASE_URL = "https://pjrm5vf1-8083.brs.devtunnels.ms/"
+    private const val IMAGEN_BASE_URL = "https://pjrm5vf1-8086.brs.devtunnels.ms/"
 
     //creamos un interceptor de logging para depurar tráfico HTTP
     private val logging = HttpLoggingInterceptor().apply {
@@ -43,6 +44,7 @@ object RemoteModule {
     private val temaRetrofit: Retrofit = createRetrofit(TEMA_BASE_URL)
     private val comentarioRetrofit: Retrofit = createRetrofit(COMENTARIO_BASE_URL)
     private val publicacionRetrofit: Retrofit = createRetrofit(PUBLICACION_BASE_URL)
+    private val imagenRetrofit: Retrofit = createRetrofit(IMAGEN_BASE_URL)
 
     // APIs de los microservicios
     val usuarioApi: UsuarioApi = usuarioRetrofit.create(UsuarioApi::class.java)
@@ -50,4 +52,5 @@ object RemoteModule {
     val temaApi: TemaApi = temaRetrofit.create(TemaApi::class.java)
     val comentarioApi: ComentarioApi = comentarioRetrofit.create(ComentarioApi::class.java)
     val publicacionApi: PublicacionApi = publicacionRetrofit.create(PublicacionApi::class.java)
+    val imagenApi: ImagenApi = imagenRetrofit.create(ImagenApi::class.java)
 }

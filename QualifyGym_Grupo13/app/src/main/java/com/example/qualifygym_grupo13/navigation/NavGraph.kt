@@ -42,6 +42,11 @@ import com.example.qualifygym_grupo13.ui.screen.LoginScreenVm
 import com.example.qualifygym_grupo13.ui.screen.RegisterScreenVm
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel
 import com.example.qualifygym_grupo13.data.storage.ImageStorageManager
+import com.example.qualifygym_grupo13.data.repository.ImagenRepository
+import android.net.Uri
+import android.graphics.Bitmap
+import java.io.File
+import java.io.FileOutputStream
 import kotlinx.coroutines.launch
 
 @Composable
@@ -106,6 +111,41 @@ fun AppNavGraph(
             val currentUserDrawer by authViewModel.currentUser.collectAsState()
             val context = LocalContext.current
             val imageStorageManager = remember { ImageStorageManager(context) }
+            val imagenRepository = remember { ImagenRepository(context = context) }
+            
+            // Estado para la foto de perfil del drawer
+            var drawerPhotoUri by remember { mutableStateOf<Uri?>(null) }
+            
+            // Cargar foto de perfil desde el microservicio si photoUrl es un ID
+            LaunchedEffect(currentUserDrawer?.photoUrl) {
+                if (currentUserDrawer?.photoUrl != null && currentUserDrawer?.id != null) {
+                    val photoUrl = currentUserDrawer?.photoUrl
+                    val imagenId = photoUrl?.toLongOrNull()
+                    
+                    if (imagenId != null) {
+                        // Es un ID del microservicio, obtener la imagen
+                        val result = imagenRepository.obtenerImagenPorId(imagenId)
+                        result.onSuccess { bitmap ->
+                            if (bitmap != null) {
+                                // Guardar temporalmente y crear URI
+                                val tempFile = File(context.cacheDir, "temp_drawer_profile_${currentUserDrawer?.id}.jpg")
+                                FileOutputStream(tempFile).use { out ->
+                                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+                                }
+                                drawerPhotoUri = Uri.fromFile(tempFile)
+                            }
+                        }.onFailure {
+                            // Si falla, intentar con path local como fallback
+                            drawerPhotoUri = imageStorageManager.pathToUri(photoUrl)
+                        }
+                    } else {
+                        // Es un path local (compatibilidad)
+                        drawerPhotoUri = imageStorageManager.pathToUri(photoUrl)
+                    }
+                } else {
+                    drawerPhotoUri = null
+                }
+            }
             
             AppDrawer( // Nuestro componente Drawer
                 currentRoute = currentRoute, // Ruta actual
@@ -143,7 +183,7 @@ fun AppNavGraph(
                 ),
                 userName = currentUserDrawer?.name ?: "Usuario Demo",
                 userEmail = currentUserDrawer?.email ?: "usuario@demo.com",
-                userPhotoUri = imageStorageManager.pathToUri(currentUserDrawer?.photoUrl)
+                userPhotoUri = drawerPhotoUri
             )
         }
     ) {

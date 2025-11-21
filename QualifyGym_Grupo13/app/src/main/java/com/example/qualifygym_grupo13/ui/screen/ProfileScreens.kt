@@ -40,6 +40,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.qualifygym_grupo13.data.model.Publicacion
 import com.example.qualifygym_grupo13.data.repository.UsuarioRepository
 import com.example.qualifygym_grupo13.data.storage.ImageStorageManager
+import com.example.qualifygym_grupo13.data.repository.ImagenRepository
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel
 import com.example.qualifygym_grupo13.domain.validation.validateNameLettersOnly
 import com.example.qualifygym_grupo13.domain.validation.validateEmail
@@ -47,6 +48,7 @@ import com.example.qualifygym_grupo13.domain.validation.validatePhoneDigitsOnly
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.FileOutputStream
 
 // Pega este código donde estaba tu antiguo ProfileScreen
 @Composable
@@ -305,6 +307,7 @@ fun EditProfileScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val imageStorageManager = remember { ImageStorageManager(context) }
+    val imagenRepository = remember { ImagenRepository(context = context) }
     
     // Obtener usuario actual del ViewModel para cargar su foto
     val currentUser = authViewModel?.currentUser?.collectAsState()?.value
@@ -316,10 +319,28 @@ fun EditProfileScreen(
     var gender by remember { mutableStateOf(currentGender) }
     var photoUri by remember { mutableStateOf<Uri?>(currentPhotoUri) }
     
-    // Cargar la foto guardada del usuario al iniciar
+    // Cargar la foto guardada del usuario al iniciar desde el microservicio
     LaunchedEffect(currentUser?.photoUrl) {
-        if (currentPhotoUri == null && currentUser?.photoUrl != null) {
-            photoUri = imageStorageManager.pathToUri(currentUser.photoUrl)
+        if (currentPhotoUri == null && currentUser?.photoUrl != null && currentUser.id > 0) {
+            // Si photoUrl es un número, es un ID de imagen del microservicio
+            val imagenId = currentUser.photoUrl?.toLongOrNull()
+            if (imagenId != null) {
+                // Obtener imagen del microservicio
+                val result = imagenRepository.obtenerImagenPorId(imagenId)
+                result.onSuccess { bitmap ->
+                    if (bitmap != null) {
+                        // Guardar temporalmente y crear URI
+                        val tempFile = File(context.cacheDir, "temp_profile_${currentUser.id}.jpg")
+                        FileOutputStream(tempFile).use { out ->
+                            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+                        }
+                        photoUri = Uri.fromFile(tempFile)
+                    }
+                }
+            } else {
+                // Fallback: intentar cargar desde path local (compatibilidad)
+                photoUri = imageStorageManager.pathToUri(currentUser.photoUrl)
+            }
         }
     }
     
@@ -668,21 +689,21 @@ fun EditProfileScreen(
                                 }
                             }
                             
-                            // 1. Guardar la foto de perfil si hay una nueva
-                            var savedPhotoPath: String? = currentUser?.photoUrl // Mantener la actual
+                            // 1. Subir foto de perfil al microservicio si hay una nueva
+                            var savedPhotoId: String? = currentUser?.photoUrl // Mantener la actual (ID de imagen)
                             
-                            // Solo guardar nueva foto si se cambió (es diferente a la actual)
+                            // Solo subir nueva foto si se cambió (es diferente a la actual)
                             if (photoUri != null && photoUri != imageStorageManager.pathToUri(currentUser?.photoUrl)) {
-                                val newPhotoPath = imageStorageManager.saveProfileImage(
-                                    photoUri!!,
-                                    currentUser?.id ?: 0L
+                                val uploadResult = imagenRepository.subirFotoPerfil(
+                                    currentUser?.id ?: 0L,
+                                    photoUri!!
                                 )
                                 
-                                if (newPhotoPath != null) {
-                                    // Si se guardó exitosamente, usar la nueva ruta
-                                    savedPhotoPath = newPhotoPath
+                                if (uploadResult.isSuccess) {
+                                    // Guardar el ID de la imagen del microservicio
+                                    savedPhotoId = uploadResult.getOrNull()?.toString()
                                 } else {
-                                    errorMessage = "Error al guardar la foto de perfil"
+                                    errorMessage = "Error al subir la foto de perfil: ${uploadResult.exceptionOrNull()?.message}"
                                     isLoading = false
                                     return@launch
                                 }
@@ -692,9 +713,9 @@ fun EditProfileScreen(
                             // La contraseña es opcional - si no se proporciona, solo se actualizan nombre, email y teléfono
                             val result = authViewModel?.updateUserProfile(name, email, phone, null)
                             
-                            // 3. Actualizar foto de perfil en la base de datos
-                            if (result?.isSuccess == true && savedPhotoPath != currentUser?.photoUrl) {
-                                authViewModel.updateUserProfilePhoto(savedPhotoPath)
+                            // 3. Actualizar foto de perfil en la base de datos (guardar ID de imagen)
+                            if (result?.isSuccess == true && savedPhotoId != currentUser?.photoUrl) {
+                                authViewModel.updateUserProfilePhoto(savedPhotoId)
                             }
                             
                             isLoading = false

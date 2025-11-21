@@ -1,5 +1,9 @@
 package com.example.qualifygym_grupo13.ui.screen
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,12 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Comment
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,14 +25,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.qualifygym_grupo13.data.model.Publicacion
+import com.example.qualifygym_grupo13.data.domain.ComentarioDomain
+import com.example.qualifygym_grupo13.data.domain.PublicacionDomain
 import com.example.qualifygym_grupo13.data.repository.UsuarioRepository
 import com.example.qualifygym_grupo13.data.storage.ImageStorageManager
+import com.example.qualifygym_grupo13.data.repository.ImagenRepository
+import com.example.qualifygym_grupo13.ui.screen.OcultarPublicacionDialog
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Pantalla que muestra la lista de publicaciones filtradas por tema
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PublicationsListScreen(
@@ -41,135 +48,126 @@ fun PublicationsListScreen(
     publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel? = null,
     authViewModel: com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel? = null,
     onOpenPost: (String) -> Unit,
-    onBack: () -> Unit,
-    onCreateNew: () -> Unit = {}
+    onBack: () -> Unit
 ) {
-    val context = LocalContext.current
+    val allPublicaciones by publicacionViewModel?.allPublicaciones?.collectAsState() ?: remember { mutableStateOf(emptyList<PublicacionDomain>()) }
+    val allTemas by publicacionViewModel?.allTemas?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
+    val currentUser by authViewModel?.currentUser?.collectAsState() ?: remember { mutableStateOf(null) }
     val usuarioRepository = remember { UsuarioRepository() }
     
-    // Obtener publicaciones del tema desde la base de datos
-    val publicacionesDb by publicacionViewModel?.allPublicaciones?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
-    val currentUser by authViewModel?.currentUser?.collectAsState() ?: remember { mutableStateOf(null) }
-    
-    // Obtener el nombre del tema
-    var temaNombre by remember { mutableStateOf("Publicaciones") }
-    val scope = rememberCoroutineScope()
-    
-    LaunchedEffect(topicId) {
-        val temaId = topicId.toLongOrNull()
-        if (temaId != null) {
-            scope.launch {
-                val tema = publicacionViewModel?.getTemaById(temaId)
-                temaNombre = tema?.nombreTema ?: "Publicaciones"
-            }
+    // Filtrar publicaciones por tema
+    val publicacionesFiltradas = remember(allPublicaciones, topicId, currentUser) {
+        val temaIdLong = topicId.toLongOrNull() ?: 0L
+        val filtradas = allPublicaciones.filter { it.temaId == temaIdLong }
+        
+        // Si no es admin, filtrar las ocultas
+        if (currentUser?.isAdmin != true && currentUser?.isModerator != true) {
+            filtradas.filter { !it.oculta }
+        } else {
+            filtradas
         }
     }
     
-    // Filtrar publicaciones por tema y por visibilidad
-    val publicacionesFiltradas = publicacionesDb.filter { 
-        val esMismoTema = it.temaId == topicId.toLongOrNull()
-        val esAdmin = currentUser?.isAdmin == true
-        
-        // Si es admin, ver todas del tema. Si no, solo las no ocultas
-        esMismoTema && (esAdmin || !it.oculta)
-    }
+    // Obtener nombre del tema
+    val tema = allTemas.find { it.idTema.toString() == topicId }
+    val temaNombre = tema?.nombreTema ?: "Tema"
     
-    // Cargar nombres de autores
+    // Mapa para almacenar nombres de autores
     var autoresMap by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
     
     LaunchedEffect(publicacionesFiltradas) {
-        val userIds = publicacionesFiltradas.map { it.usuarioId }.distinct()
-        val namesMap = mutableMapOf<Long, String>()
-        
-        userIds.forEach { userId ->
-            scope.launch {
+        if (publicacionesFiltradas.isNotEmpty()) {
+            val userIds = publicacionesFiltradas.map { it.usuarioId }.distinct()
+            val namesMap = mutableMapOf<Long, String>()
+            
+            userIds.forEach { userId ->
                 val userResult = usuarioRepository.fetchUsuarioById(userId)
                 val userName = userResult.getOrNull()?.username ?: "Usuario"
                 namesMap[userId] = userName
             }
+            
+            autoresMap = namesMap
         }
-        
-        autoresMap = namesMap
     }
-
+    
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(temaNombre) },
+                title = { Text("Publicaciones: $temaNombre") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver a búsqueda"
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }
-    ) { inner ->
+    ) { paddingValues ->
         if (publicacionesFiltradas.isEmpty()) {
-            // Mostrar mensaje cuando no hay publicaciones
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(inner),
+                    .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "No hay publicaciones en este tema",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Sé el primero en publicar",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                }
+                Text(
+                    text = "No hay publicaciones en este tema",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         } else {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(inner),
-            contentPadding = PaddingValues(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 items(publicacionesFiltradas) { publicacion ->
-                    val autorNombre = autoresMap[publicacion.usuarioId] ?: "Usuario"
-                    
-                    ElevatedCard(
-                        onClick = { onOpenPost(publicacion.idPublicacion.toString()) }, 
+                    Card(
+                        onClick = { onOpenPost(publicacion.idPublicacion.toString()) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                    Column(Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                text = publicacion.titulo, 
-                                style = MaterialTheme.typography.titleMedium, 
-                                fontWeight = FontWeight.SemiBold
+                                text = publicacion.titulo,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "por $autorNombre", 
+                                text = "por ${autoresMap[publicacion.usuarioId] ?: "Usuario"}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = publicacion.descripcion,
+                                text = publicacion.descripcion.take(150) + if (publicacion.descripcion.length > 150) "..." else "",
                                 style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 2,
-                                color = MaterialTheme.colorScheme.onSurface
+                                maxLines = 3
                             )
+                            if (publicacion.oculta && (currentUser?.isAdmin == true || currentUser?.isModerator == true)) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.VisibilityOff,
+                                        contentDescription = "Oculta",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Publicación oculta",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -178,6 +176,9 @@ fun PublicationsListScreen(
     }
 }
 
+/**
+ * Pantalla que muestra el detalle de una publicación con sus comentarios
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PublicationDetailScreen(
@@ -194,110 +195,120 @@ fun PublicationDetailScreen(
     val usuarioRepository = remember { UsuarioRepository() }
     val scope = rememberCoroutineScope()
     val imageStorageManager = remember { ImageStorageManager(context) }
+    val imagenRepository = remember { ImagenRepository(context = context) }
     
     // Estados para la publicación y comentarios
-    var publicacion by remember { mutableStateOf<com.example.qualifygym_grupo13.data.domain.PublicacionDomain?>(null) }
-    var autorName by remember { mutableStateOf("Usuario") }
-    var isLoading by remember { mutableStateOf(true) }
-    var showAdminMenu by remember { mutableStateOf(false) }
+    var publicacion by remember { mutableStateOf<PublicacionDomain?>(null) }
+    var autorNombre by remember { mutableStateOf<String?>(null) }
+    var showMenu by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showMotivoDialog by remember { mutableStateOf(false) }
     
-    // Obtener comentarios de la base de datos usando remember para mantener el StateFlow estable
-    // Si es admin, incluir comentarios ocultos; si no, solo mostrar los visibles
-    val comentariosFlow = remember(postId, currentUser?.isAdmin) {
-        publicacionViewModel?.getComentariosByPublicacionId(
-            postId.toLongOrNull() ?: 0,
-            incluirOcultos = currentUser?.isAdmin == true
-        )
-    }
-    val comentariosDb by comentariosFlow?.collectAsState(initial = emptyList()) ?: remember { mutableStateOf(emptyList()) }
+    val publicacionId = postId.toLongOrNull() ?: 0L
     
-    // Filtrar comentarios: si no es admin, ocultar los comentarios marcados como ocultos
-    val comentariosFiltrados = remember(comentariosDb, currentUser?.isAdmin) {
-        if (currentUser?.isAdmin == true) {
-            comentariosDb // Admin ve todos los comentarios
-        } else {
-            comentariosDb.filter { !it.oculto } // Usuarios normales solo ven comentarios no ocultos
-        }
-    }
-    
-    // Mapa para almacenar nombres de usuarios (key: userId, value: userName)
-    var userNamesMap by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
-    
-    // Cargar publicación, autor y nombres de usuarios de los comentarios
+    // Cargar publicación
     LaunchedEffect(postId) {
-        isLoading = true
-        try {
-            val pubId = postId.toLongOrNull()
-            if (pubId != null) {
-                // Obtener publicación
-                publicacion = publicacionViewModel?.getPublicacionById(pubId)
-                
-                // Obtener nombre del autor de la publicación
-                publicacion?.let { pub ->
-                    scope.launch {
-                        val userResult = usuarioRepository.fetchUsuarioById(pub.usuarioId)
-                        autorName = userResult.getOrNull()?.username ?: "Usuario"
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            // Error al cargar
-        } finally {
-            isLoading = false
-        }
-    }
-    
-    // Cargar nombres de todos los usuarios que comentaron (solo cuando cambian los comentarios)
-    LaunchedEffect(comentariosDb) {
-        if (comentariosDb.isNotEmpty()) {
-            val userIds = comentariosDb.map { comentario -> comentario.usuarioId }.distinct()
-            val namesMap = mutableMapOf<Long, String>()
-            
+        if (publicacionId > 0) {
             scope.launch {
-                userIds.forEach { userId ->
-                    val userResult = usuarioRepository.fetchUsuarioById(userId)
-                    namesMap[userId] = userResult.getOrNull()?.username ?: "Usuario"
+                val pub = publicacionViewModel?.getPublicacionById(publicacionId)
+                publicacion = pub
+                // Cargar nombre del autor
+                if (pub != null) {
+                    val userResult = usuarioRepository.fetchUsuarioById(pub.usuarioId)
+                    autorNombre = userResult.getOrNull()?.username ?: "Usuario"
                 }
-                
-                userNamesMap = namesMap
             }
         }
     }
     
-    // Función para formatear fecha
-    fun formatDate(timestamp: Long): String {
-        val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-        return sdf.format(Date(timestamp))
+    // Cargar comentarios
+    val comentariosFlow = remember(publicacionId) {
+        if (publicacionId > 0) {
+            publicacionViewModel?.getComentariosByPublicacionId(
+                publicacionId,
+                incluirOcultos = currentUser?.isAdmin == true || currentUser?.isModerator == true
+            )
+        } else {
+            null
+        }
+    }
+    
+    val comentarios by comentariosFlow?.collectAsState() ?: remember { mutableStateOf(emptyList<ComentarioDomain>()) }
+    
+    // Filtrar comentarios según el rol del usuario
+    val comentariosFiltrados = remember(comentarios, currentUser) {
+        if (currentUser?.isAdmin == true || currentUser?.isModerator == true) {
+            comentarios // Admin/moderador ve todos
+        } else {
+            comentarios.filter { !it.oculto } // Usuario normal solo ve los no ocultos
+        }
     }
     
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
-                    Column {
-                        Text("Detalle de Publicación")
-                        // Indicador de administrador
-                        if (currentUser?.isAdmin == true) {
-                            Text(
-                                text = "👑 Modo Administrador",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFFFFD700)
-                            )
-                        }
-                    }
-                },
+                title = { Text(publicacion?.titulo ?: "Publicación") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    }
+                },
+                actions = {
+                    // Menú solo para admin/moderador o si es el autor
+                    if ((currentUser?.isAdmin == true || currentUser?.isModerator == true) || 
+                        (publicacion != null && currentUser?.id == publicacion?.usuarioId)) {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Más opciones")
+                        }
+                        
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            // Opción para ocultar/mostrar (solo admin/moderador)
+                            if (currentUser?.isAdmin == true || currentUser?.isModerator == true) {
+                                DropdownMenuItem(
+                                    text = { Text(if (publicacion?.oculta == true) "Mostrar publicación" else "Ocultar publicación") },
+                                    onClick = {
+                                        if (publicacion?.oculta == true) {
+                                            scope.launch {
+                                                publicacionViewModel?.mostrarPublicacion(publicacionId, incluirOcultas = true)
+                                            }
+                                        } else {
+                                            showMotivoDialog = true
+                                        }
+                                        showMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            if (publicacion?.oculta == true) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                            contentDescription = null
+                                        )
+                                    }
+                                )
+                            }
+                            
+                            // Opción para eliminar (solo si es el autor o admin)
+                            if ((publicacion != null && currentUser?.id == publicacion?.usuarioId) || 
+                                currentUser?.isAdmin == true) {
+                                DropdownMenuItem(
+                                    text = { Text("Eliminar publicación") },
+                                    onClick = {
+                                        showDeleteDialog = true
+                                        showMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                    }
+                                )
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         },
@@ -305,13 +316,12 @@ fun PublicationDetailScreen(
             ExtendedFloatingActionButton(
                 onClick = { onWriteComment(postId) },
                 icon = { Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = null) },
-                text = { Text("Escribir Comentario") },
+                text = { Text("Comentar") },
                 containerColor = MaterialTheme.colorScheme.primary
             )
         }
     ) { paddingValues ->
-        if (isLoading) {
-            // Mostrar indicador de carga
+        if (publicacion == null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -320,302 +330,346 @@ fun PublicationDetailScreen(
             ) {
                 CircularProgressIndicator()
             }
-        } else if (publicacion == null) {
-            // Mostrar mensaje de error si no se encontró la publicación
-            Box(
+        } else {
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = "Publicación no encontrada",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        } else {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item { Spacer(modifier = Modifier.height(8.dp)) }
-            
-                // Título de la publicación con menú de administrador
-            item {
-                    Row(
+                // Información de la publicación
+                item {
+                    Card(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                Text(
-                                text = publicacion!!.titulo,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                            
-                            // Indicador de publicación oculta (solo visible para admin)
-                            if (currentUser?.isAdmin == true && publicacion!!.oculta) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Surface(
-                                    shape = MaterialTheme.shapes.small,
-                                    color = MaterialTheme.colorScheme.errorContainer,
-                                    tonalElevation = 2.dp
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.VisibilityOff,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp),
-                                            tint = MaterialTheme.colorScheme.onErrorContainer
-                                        )
-                                        Text(
-                                            text = "Publicación oculta",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onErrorContainer,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Menú de administrador (solo visible para admins)
-                        if (currentUser?.isAdmin == true) {
-                            Box {
-                                IconButton(onClick = { showAdminMenu = true }) {
-                                    Icon(
-                                        imageVector = Icons.Default.MoreVert,
-                                        contentDescription = "Opciones de administrador",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                                
-                                DropdownMenu(
-                                    expanded = showAdminMenu,
-                                    onDismissRequest = { showAdminMenu = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text("Ocultar publicación") },
-                                        onClick = {
-                                            scope.launch {
-                                                publicacion?.let { pub ->
-                                                    val result = publicacionViewModel?.ocultarPublicacion(pub.idPublicacion, "Ocultada por administrador")
-                                                    result?.onSuccess {
-                                                        Toast.makeText(context, "Publicación oculta", Toast.LENGTH_SHORT).show()
-                                                        onPublicationHidden()
-                                                    }?.onFailure {
-                                                        Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
-                                                    }
-                                                }
-                                            }
-                                            showAdminMenu = false
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                Icons.Default.VisibilityOff,
-                                                contentDescription = null
-                                            )
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Mostrar publicación") },
-                                        onClick = {
-                                            scope.launch {
-                                                publicacion?.let { pub ->
-                                                    val result = publicacionViewModel?.mostrarPublicacion(pub.idPublicacion)
-                                                    result?.onSuccess {
-                                                        Toast.makeText(context, "Publicación desocultada", Toast.LENGTH_SHORT).show()
-                                                    }?.onFailure {
-                                                        Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
-                                                    }
-                                                }
-                                            }
-                                            showAdminMenu = false
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                Icons.Default.Visibility,
-                                                contentDescription = null
-                                            )
-                                        }
-                                    )
-                                    HorizontalDivider()
-                                    DropdownMenuItem(
-                                        text = { Text("Borrar publicación") },
-                                        onClick = {
-                                            scope.launch {
-                                                publicacion?.let { pub ->
-                                                    publicacionViewModel?.deletePublicacion(pub.idPublicacion)
-                                                    Toast.makeText(context, "Publicación eliminada", Toast.LENGTH_SHORT).show()
-                                                    onPublicationDeleted()
-                                                }
-                                            }
-                                            showAdminMenu = false
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                Icons.Default.Delete,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.error
-                                            )
-                                        },
-                                        colors = MenuDefaults.itemColors(
-                                            textColor = MaterialTheme.colorScheme.error
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // Autor y fecha
-            item {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                            text = "por $autorName",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                        Text(
-                            text = "• ${formatDate(publicacion!!.fecha)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
                         )
-                    }
-            }
-            
-            // Contenido de la publicación
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Text(
-                            text = publicacion!!.descripcion,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-                
-                // Imagen de la publicación (si existe)
-                if (publicacion?.imageUrl != null) {
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = publicacion!!.titulo,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold
                             )
-                        ) {
-                            AsyncImage(
-                                model = imageStorageManager.pathToUri(publicacion!!.imageUrl),
-                                contentDescription = "Imagen de la publicación",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(max = 400.dp)
-                                    .clip(MaterialTheme.shapes.medium),
-                                contentScale = ContentScale.Fit
-                            )
-                        }
-                    }
-                }
-            
-            // Sección de comentarios
-            item {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                Text(
-                        text = "Comentarios (${comentariosFiltrados.size})",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            
-                // Mostrar comentarios o mensaje si no hay
-                if (comentariosFiltrados.isEmpty()) {
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    Icons.AutoMirrored.Filled.Comment,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(48.dp)
+                                    Icons.Default.Person,
+                                    contentDescription = "Autor",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "No hay comentarios aún",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "Sé el primero en comentar",
+                                    text = autorNombre ?: "Usuario",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = publicacion!!.descripcion,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(16.dp),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
                     }
-                } else {
-            // Lista de comentarios
-                    items(comentariosFiltrados) { comentarioDomain ->
-                        // Obtener el nombre del autor del mapa pre-cargado
-                        val comentarioAutorName = userNamesMap[comentarioDomain.usuarioId] ?: "Usuario"
-                        
-                CommentCard(
-                            comentarioDomain = comentarioDomain,
-                            autor = comentarioAutorName,
-                            fecha = formatDate(comentarioDomain.fechaRegistro),
-                            isAdmin = currentUser?.isAdmin == true,
-                            publicacionId = postId.toLongOrNull() ?: 0,
-                            publicacionViewModel = publicacionViewModel,
-                            scope = scope,
-                            context = context
-                )
+                }
+                
+                // Imagen de la publicación (si existe)
+                if (publicacion?.imageUrl != null) {
+                    item {
+                        PublicationImageCard(
+                            imageUrl = publicacion!!.imageUrl!!,
+                            imagenRepository = imagenRepository,
+                            imageStorageManager = imageStorageManager,
+                            context = context,
+                            scope = scope
+                        )
                     }
-            }
+                }
             
-            // Espacio al final para el FAB
-            item { Spacer(modifier = Modifier.height(80.dp)) }
+                // Sección de comentarios
+                item {
+                    Text(
+                        text = "Comentarios (${comentariosFiltrados.size})",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                
+                if (comentariosFiltrados.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No hay comentarios aún",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    items(comentariosFiltrados) { comentario ->
+                        CommentCard(
+                            comentarioDomain = comentario,
+                            publicacionId = publicacionId,
+                            currentUser = currentUser,
+                            publicacionViewModel = publicacionViewModel,
+                            usuarioRepository = usuarioRepository,
+                            scope = scope
+                        )
+                    }
+                }
+                
+                // Espacio inferior
+                item { Spacer(modifier = Modifier.height(16.dp)) }
             }
         }
     }
+    
+    // Diálogo para confirmar eliminación
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Eliminar publicación") },
+            text = { Text("¿Estás seguro de que quieres eliminar esta publicación? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            publicacionViewModel?.deletePublicacion(publicacionId)
+                            onPublicationDeleted()
+                        }
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+    
+    // Diálogo para escribir motivo de ocultación
+    if (showMotivoDialog) {
+        OcultarPublicacionDialog(
+            onDismiss = { showMotivoDialog = false },
+            onConfirm = { motivo ->
+                scope.launch {
+                    publicacionViewModel?.ocultarPublicacion(publicacionId, motivo, incluirOcultas = true)
+                    onPublicationHidden()
+                }
+                showMotivoDialog = false
+            }
+        )
+    }
 }
 
+/**
+ * Componente para mostrar un comentario
+ */
 @Composable
-fun OcultarComentarioDialog(
+private fun CommentCard(
+    comentarioDomain: ComentarioDomain,
+    publicacionId: Long,
+    currentUser: com.example.qualifygym_grupo13.data.domain.UserDomain?,
+    publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel?,
+    usuarioRepository: UsuarioRepository,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    var autorNombre by remember { mutableStateOf<String?>(null) }
+    var showMenu by remember { mutableStateOf(false) }
+    var showMotivoDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    
+    // Cargar nombre del autor
+    LaunchedEffect(comentarioDomain.usuarioId) {
+        val userResult = usuarioRepository.fetchUsuarioById(comentarioDomain.usuarioId)
+        autorNombre = userResult.getOrNull()?.username ?: "Usuario"
+    }
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (comentarioDomain.oculto) {
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            }
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = "Autor",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = autorNombre ?: "Usuario",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                
+                // Menú solo para admin/moderador o si es el autor
+                if ((currentUser?.isAdmin == true || currentUser?.isModerator == true) || 
+                    currentUser?.id == comentarioDomain.usuarioId) {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Más opciones")
+                    }
+                    
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        // Opción para ocultar/mostrar (solo admin/moderador)
+                        if (currentUser?.isAdmin == true || currentUser?.isModerator == true) {
+                            DropdownMenuItem(
+                                text = { Text(if (comentarioDomain.oculto) "Mostrar comentario" else "Ocultar comentario") },
+                                onClick = {
+                                    if (comentarioDomain.oculto) {
+                                        // Si está oculto, mostrar directamente sin diálogo
+                                        scope.launch {
+                                            val result = publicacionViewModel?.mostrarComentario(
+                                                comentarioDomain.idComentario,
+                                                publicacionId
+                                            )
+                                            result?.onSuccess {
+                                                Toast.makeText(
+                                                    context,
+                                                    "Comentario desocultado",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }?.onFailure {
+                                                Toast.makeText(
+                                                    context,
+                                                    "Error: ${it.message}",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }
+                                    } else {
+                                        // Si no está oculto, mostrar diálogo para escribir motivo
+                                        showMotivoDialog = true
+                                    }
+                                    showMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        if (comentarioDomain.oculto) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                        }
+                        
+                        // Opción para eliminar (solo si es el autor o admin)
+                        if (currentUser?.id == comentarioDomain.usuarioId || currentUser?.isAdmin == true) {
+                            DropdownMenuItem(
+                                text = { Text("Eliminar comentario") },
+                                onClick = {
+                                    scope.launch {
+                                        // TODO: Implementar eliminación de comentarios si existe
+                                        Toast.makeText(
+                                            context,
+                                            "Función de eliminación no implementada",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                    showMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            if (comentarioDomain.oculto) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.VisibilityOff,
+                        contentDescription = "Oculto",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Este comentario ha sido ocultado",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                    )
+                }
+                if (comentarioDomain.motivoBaneo != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Motivo: ${comentarioDomain.motivoBaneo}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                Text(
+                    text = comentarioDomain.comentario,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
+    }
+    
+    // Diálogo para escribir motivo de ocultación
+    if (showMotivoDialog) {
+        OcultarComentarioDialog(
+            onDismiss = { showMotivoDialog = false },
+            onConfirm = { motivo ->
+                scope.launch {
+                    val result = publicacionViewModel?.ocultarComentario(
+                        comentarioDomain.idComentario,
+                        motivo,
+                        publicacionId
+                    )
+                    result?.onSuccess {
+                        Toast.makeText(
+                            context,
+                            "Comentario ocultado",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }?.onFailure {
+                        Toast.makeText(
+                            context,
+                            "Error: ${it.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+                showMotivoDialog = false
+            }
+        )
+    }
+}
+
+/**
+ * Diálogo para ocultar un comentario con motivo
+ */
+@Composable
+private fun OcultarComentarioDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
@@ -639,10 +693,10 @@ fun OcultarComentarioDialog(
                     text = "Por favor, escribe el motivo por el cual se está ocultando este comentario. Este mensaje se enviará como notificación al usuario.",
                     style = MaterialTheme.typography.bodyMedium
                 )
-                
+
                 OutlinedTextField(
                     value = motivo,
-                    onValueChange = { 
+                    onValueChange = {
                         motivo = it
                         error = null
                     },
@@ -683,207 +737,73 @@ fun OcultarComentarioDialog(
     )
 }
 
+/**
+ * Componente para mostrar la imagen de una publicación
+ * Soporta tanto imágenes del microservicio (por ID) como imágenes locales (por path)
+ */
 @Composable
-private fun CommentCard(
-    comentarioDomain: com.example.qualifygym_grupo13.data.domain.ComentarioDomain,
-    autor: String,
-    fecha: String = "",
-    isAdmin: Boolean = false,
-    publicacionId: Long,
-    publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel?,
-    scope: kotlinx.coroutines.CoroutineScope,
-    context: android.content.Context
+private fun PublicationImageCard(
+    imageUrl: String,
+    imagenRepository: ImagenRepository,
+    imageStorageManager: ImageStorageManager,
+    context: Context,
+    scope: kotlinx.coroutines.CoroutineScope
 ) {
-    var showMenu by remember { mutableStateOf(false) }
-    var showMotivoDialog by remember { mutableStateOf(false) }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var isLoadingImage by remember { mutableStateOf(true) }
     
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-        ) {
-            // Autor del comentario y fecha
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Person,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = autor,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
+    // Determinar si imageUrl es un ID del microservicio o un path local
+    val imagenId = imageUrl.toLongOrNull()
+    
+    LaunchedEffect(imageUrl) {
+        if (imagenId != null) {
+            // Es un ID del microservicio, obtener la imagen
+            val result = imagenRepository.obtenerImagenPorId(imagenId)
+            result.onSuccess { bitmap ->
+                if (bitmap != null) {
+                    // Guardar temporalmente y crear URI
+                    val tempFile = File(context.cacheDir, "temp_publication_${imagenId}.jpg")
+                    FileOutputStream(tempFile).use { out ->
+                        bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
                     }
-                    
-                    // Indicador de comentario oculto (solo visible para admin)
-                    if (isAdmin && comentarioDomain.oculto) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Surface(
-                            shape = MaterialTheme.shapes.small,
-                            color = MaterialTheme.colorScheme.errorContainer,
-                            tonalElevation = 2.dp
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.VisibilityOff,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(12.dp),
-                                    tint = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                                Text(
-                                    text = "Comentario oculto",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    }
+                    imageUri = Uri.fromFile(tempFile)
                 }
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (fecha.isNotEmpty()) {
-                        Text(
-                            text = fecha,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    
-                    // Menú de administrador (solo visible para admins)
-                    if (isAdmin) {
-                        Box {
-                            IconButton(onClick = { showMenu = true }) {
-                                Icon(
-                                    imageVector = Icons.Default.MoreVert,
-                                    contentDescription = "Opciones de administrador",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            
-                            DropdownMenu(
-                                expanded = showMenu,
-                                onDismissRequest = { showMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(if (comentarioDomain.oculto) "Mostrar comentario" else "Ocultar comentario") },
-                                    onClick = {
-                                        if (comentarioDomain.oculto) {
-                                            // Si está oculto, mostrar directamente sin diálogo
-                                            scope.launch {
-                                                val result = publicacionViewModel?.mostrarComentario(
-                                                    comentarioDomain.idComentario,
-                                                    publicacionId
-                                                )
-                                                result?.onSuccess {
-                                                    Toast.makeText(context, "Comentario desocultado", Toast.LENGTH_SHORT).show()
-                                                }?.onFailure {
-                                                    Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
-                                                }
-                                            }
-                                        } else {
-                                            // Si no está oculto, mostrar diálogo para escribir motivo
-                                            showMotivoDialog = true
-                                        }
-                                        showMenu = false
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            if (comentarioDomain.oculto) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                            contentDescription = null
-                                        )
-                                    }
-                                )
-                                HorizontalDivider()
-                                DropdownMenuItem(
-                                    text = { Text("Borrar comentario") },
-                                    onClick = {
-                                        scope.launch {
-                                            val result = publicacionViewModel?.deleteComentario(
-                                                comentarioDomain.idComentario,
-                                                publicacionId
-                                            )
-                                            result?.onSuccess {
-                                                Toast.makeText(context, "Comentario eliminado", Toast.LENGTH_SHORT).show()
-                                            }?.onFailure {
-                                                Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
-                                            }
-                                        }
-                                        showMenu = false
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error
-                                        )
-                                    },
-                                    colors = MenuDefaults.itemColors(
-                                        textColor = MaterialTheme.colorScheme.error
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
+                isLoadingImage = false
+            }.onFailure {
+                isLoadingImage = false
             }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Contenido del comentario
-            Text(
-                text = comentarioDomain.comentario,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+        } else {
+            // Es un path local (compatibilidad)
+            imageUri = imageStorageManager.pathToUri(imageUrl)
+            isLoadingImage = false
         }
     }
     
-    // Diálogo para escribir motivo de ocultación
-    if (showMotivoDialog) {
-        OcultarComentarioDialog(
-            onDismiss = { showMotivoDialog = false },
-            onConfirm = { motivo ->
-                scope.launch {
-                    val result = publicacionViewModel?.ocultarComentario(
-                        comentarioDomain.idComentario,
-                        motivo,
-                        publicacionId
-                    )
-                    result?.onSuccess {
-                        Toast.makeText(context, "Comentario ocultado", Toast.LENGTH_SHORT).show()
-                    }?.onFailure {
-                        Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
-                    }
-                }
-                showMotivoDialog = false
-            }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
+    ) {
+        if (isLoadingImage) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (imageUri != null) {
+            AsyncImage(
+                model = imageUri,
+                contentDescription = "Imagen de la publicación",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp)
+                    .clip(MaterialTheme.shapes.medium),
+                contentScale = ContentScale.Fit
+            )
+        }
     }
 }

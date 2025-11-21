@@ -28,6 +28,7 @@ import androidx.core.content.PermissionChecker
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.qualifygym_grupo13.data.storage.ImageStorageManager
+import com.example.qualifygym_grupo13.data.repository.ImagenRepository
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -77,6 +78,7 @@ fun CreatePublicationScreen(
 
     val context = LocalContext.current
     val imageStorageManager = remember { ImageStorageManager(context) }
+    val imagenRepository = remember { ImagenRepository(context = context) }
     var photoUriString by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingCaptureUri by remember { mutableStateOf<Uri?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -354,12 +356,16 @@ fun CreatePublicationScreen(
             // Botón Publicar
             Button(
                 onClick = {
-                    if (currentUser == null) {
+                    // Guardar valores en variables locales para evitar problemas de smart cast
+                    val user = currentUser
+                    val tema = selectedTema
+                    
+                    if (user == null) {
                         Toast.makeText(context, "Debe iniciar sesión", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
                     
-                    if (selectedTema == null) {
+                    if (tema == null) {
                         Toast.makeText(context, "Debe seleccionar un tema", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
@@ -371,30 +377,38 @@ fun CreatePublicationScreen(
                         val result = publicacionViewModel?.createPublicacion(
                             titulo = title,
                             descripcion = desc,
-                            userId = currentUser!!.id,
-                            temaId = selectedTema!!.idTema,
+                            userId = user.id,
+                            temaId = tema.idTema,
                             imageUrl = null // Primero sin imagen
                         )
                         
                         if (result?.isSuccess == true) {
                             val publicacionId = result.getOrNull()
                             
-                            // Si hay una imagen seleccionada, guardarla
+                            // Si hay una imagen seleccionada, subirla al microservicio
                             if (photoUriString != null && publicacionId != null) {
                                 try {
                                     val photoUri = Uri.parse(photoUriString)
-                                    val savedImagePath = imageStorageManager.savePublicationImage(
-                                        photoUri,
-                                        publicacionId
+                                    val uploadResult = imagenRepository.subirFotoPublicacion(
+                                        publicacionId,
+                                        user.id,
+                                        photoUri
                                     )
                                     
-                                    if (savedImagePath != null) {
-                                        // Actualizar la publicación con la ruta de la imagen
-                                        publicacionViewModel.updatePublicacionImage(publicacionId, savedImagePath)
+                                    if (uploadResult.isSuccess) {
+                                        val imagenId = uploadResult.getOrNull()
+                                        // Guardar el ID de la imagen en la publicación
+                                        if (imagenId != null) {
+                                            publicacionViewModel.updatePublicacionImage(publicacionId, imagenId.toString())
+                                        }
+                                    } else {
+                                        // Si falla al subir la imagen, continuar de todos modos
+                                        Toast.makeText(context, "Advertencia: No se pudo subir la imagen", Toast.LENGTH_SHORT).show()
                                     }
                                 } catch (e: Exception) {
-                                    // Si falla al guardar la imagen, continuar de todos modos
+                                    // Si falla al subir la imagen, continuar de todos modos
                                     e.printStackTrace()
+                                    Toast.makeText(context, "Advertencia: Error al subir la imagen", Toast.LENGTH_SHORT).show()
                                 }
                             }
                             
