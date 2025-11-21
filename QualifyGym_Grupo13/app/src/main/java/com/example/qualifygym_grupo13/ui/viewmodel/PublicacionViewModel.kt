@@ -230,17 +230,23 @@ class PublicacionViewModel(
     }
 
     // Obtener comentarios de una publicación específica
-    fun getComentariosByPublicacionId(publicacionId: Long): StateFlow<List<ComentarioDomain>> {
+    // Nota: El parámetro incluirOcultos se usa para la carga inicial, pero el StateFlow siempre
+    // contendrá todos los comentarios. El filtrado se hace en la UI según el rol del usuario.
+    fun getComentariosByPublicacionId(publicacionId: Long, incluirOcultos: Boolean = false): StateFlow<List<ComentarioDomain>> {
         // Obtener o crear el StateFlow para esta publicación
         val flow = _comentariosFlows.getOrPut(publicacionId) {
             MutableStateFlow<List<ComentarioDomain>>(emptyList())
         }
         
         // Cargar comentarios si el StateFlow está vacío o si necesitamos refrescar
-        viewModelScope.launch {
-            val result = comentarioRepository.fetchComentariosPorPublicacion(publicacionId)
-            result.onSuccess { dtos ->
-                flow.value = dtos.map { it.toComentarioDomain() }
+        // Si el StateFlow ya tiene datos, no recargamos para evitar sobrecarga
+        // Si está vacío, cargamos con incluirOcultos según el parámetro
+        if (flow.value.isEmpty()) {
+            viewModelScope.launch {
+                val result = comentarioRepository.fetchComentariosPorPublicacion(publicacionId, incluirOcultos)
+                result.onSuccess { dtos ->
+                    flow.value = dtos.map { it.toComentarioDomain() }
+                }
             }
         }
         
@@ -248,16 +254,80 @@ class PublicacionViewModel(
     }
     
     // Recargar comentarios para una publicación específica
+    // Siempre carga con incluirOcultos=true para que el StateFlow tenga todos los comentarios
+    // El filtrado se hace en la UI según el rol del usuario
     private fun reloadComentariosForPublicacion(publicacionId: Long) {
         val flow = _comentariosFlows[publicacionId]
         if (flow != null) {
             viewModelScope.launch {
-                val result = comentarioRepository.fetchComentariosPorPublicacion(publicacionId)
+                // Siempre cargar con incluirOcultos=true para tener todos los comentarios
+                // El filtrado se hace en la UI
+                val result = comentarioRepository.fetchComentariosPorPublicacion(publicacionId, incluirOcultos = true)
                 result.onSuccess { dtos ->
                     flow.value = dtos.map { it.toComentarioDomain() }
                 }
             }
         }
+    }
+    
+    // Ocultar un comentario
+    suspend fun ocultarComentario(id: Long, motivoBaneo: String, publicacionId: Long): Result<Unit> {
+        _isLoading.value = true
+        val result = comentarioRepository.ocultar(id, motivoBaneo)
+        val finalResult = result.fold(
+            onSuccess = {
+                _successMessage.value = "Comentario ocultado"
+                // Recargar comentarios de la publicación
+                reloadComentariosForPublicacion(publicacionId)
+                Result.success(Unit)
+            },
+            onFailure = { error ->
+                _errorMessage.value = "Error al ocultar comentario: ${error.message}"
+                Result.failure(error)
+            }
+        )
+        _isLoading.value = false
+        return finalResult
+    }
+    
+    // Mostrar un comentario (desocultar)
+    suspend fun mostrarComentario(id: Long, publicacionId: Long): Result<Unit> {
+        _isLoading.value = true
+        val result = comentarioRepository.mostrar(id)
+        val finalResult = result.fold(
+            onSuccess = {
+                _successMessage.value = "Comentario desocultado"
+                // Recargar comentarios de la publicación
+                reloadComentariosForPublicacion(publicacionId)
+                Result.success(Unit)
+            },
+            onFailure = { error ->
+                _errorMessage.value = "Error al mostrar comentario: ${error.message}"
+                Result.failure(error)
+            }
+        )
+        _isLoading.value = false
+        return finalResult
+    }
+    
+    // Eliminar un comentario
+    suspend fun deleteComentario(id: Long, publicacionId: Long): Result<Unit> {
+        _isLoading.value = true
+        val result = comentarioRepository.delete(id)
+        val finalResult = result.fold(
+            onSuccess = {
+                _successMessage.value = "Comentario eliminado"
+                // Recargar comentarios de la publicación
+                reloadComentariosForPublicacion(publicacionId)
+                Result.success(Unit)
+            },
+            onFailure = { error ->
+                _errorMessage.value = "Error al eliminar comentario: ${error.message}"
+                Result.failure(error)
+            }
+        )
+        _isLoading.value = false
+        return finalResult
     }
 
     // Ocultar una publicación

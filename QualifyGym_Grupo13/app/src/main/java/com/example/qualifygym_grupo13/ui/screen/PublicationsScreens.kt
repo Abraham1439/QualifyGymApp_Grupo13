@@ -202,10 +202,23 @@ fun PublicationDetailScreen(
     var showAdminMenu by remember { mutableStateOf(false) }
     
     // Obtener comentarios de la base de datos usando remember para mantener el StateFlow estable
-    val comentariosFlow = remember(postId) {
-        publicacionViewModel?.getComentariosByPublicacionId(postId.toLongOrNull() ?: 0)
+    // Si es admin, incluir comentarios ocultos; si no, solo mostrar los visibles
+    val comentariosFlow = remember(postId, currentUser?.isAdmin) {
+        publicacionViewModel?.getComentariosByPublicacionId(
+            postId.toLongOrNull() ?: 0,
+            incluirOcultos = currentUser?.isAdmin == true
+        )
     }
     val comentariosDb by comentariosFlow?.collectAsState(initial = emptyList()) ?: remember { mutableStateOf(emptyList()) }
+    
+    // Filtrar comentarios: si no es admin, ocultar los comentarios marcados como ocultos
+    val comentariosFiltrados = remember(comentariosDb, currentUser?.isAdmin) {
+        if (currentUser?.isAdmin == true) {
+            comentariosDb // Admin ve todos los comentarios
+        } else {
+            comentariosDb.filter { !it.oculto } // Usuarios normales solo ven comentarios no ocultos
+        }
+    }
     
     // Mapa para almacenar nombres de usuarios (key: userId, value: userName)
     var userNamesMap by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
@@ -534,14 +547,14 @@ fun PublicationDetailScreen(
             item {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 Text(
-                        text = "Comentarios (${comentariosDb.size})",
+                        text = "Comentarios (${comentariosFiltrados.size})",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
             }
             
                 // Mostrar comentarios o mensaje si no hay
-                if (comentariosDb.isEmpty()) {
+                if (comentariosFiltrados.isEmpty()) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -577,14 +590,19 @@ fun PublicationDetailScreen(
                     }
                 } else {
             // Lista de comentarios
-                    items(comentariosDb) { comentarioDomain ->
+                    items(comentariosFiltrados) { comentarioDomain ->
                         // Obtener el nombre del autor del mapa pre-cargado
                         val comentarioAutorName = userNamesMap[comentarioDomain.usuarioId] ?: "Usuario"
                         
                 CommentCard(
-                            comentario = comentarioDomain.comentario,
+                            comentarioDomain = comentarioDomain,
                             autor = comentarioAutorName,
-                            fecha = formatDate(comentarioDomain.fechaRegistro)
+                            fecha = formatDate(comentarioDomain.fechaRegistro),
+                            isAdmin = currentUser?.isAdmin == true,
+                            publicacionId = postId.toLongOrNull() ?: 0,
+                            publicacionViewModel = publicacionViewModel,
+                            scope = scope,
+                            context = context
                 )
                     }
             }
@@ -598,10 +616,17 @@ fun PublicationDetailScreen(
 
 @Composable
 private fun CommentCard(
-    comentario: String,
+    comentarioDomain: com.example.qualifygym_grupo13.data.domain.ComentarioDomain,
     autor: String,
-    fecha: String = ""
+    fecha: String = "",
+    isAdmin: Boolean = false,
+    publicacionId: Long,
+    publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel?,
+    scope: kotlinx.coroutines.CoroutineScope,
+    context: android.content.Context
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -620,30 +645,160 @@ private fun CommentCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Icon(
-                    Icons.Default.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(16.dp)
-                )
-                Text(
-                    text = autor,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.secondary
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = autor,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                    
+                    // Indicador de comentario oculto (solo visible para admin)
+                    if (isAdmin && comentarioDomain.oculto) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            tonalElevation = 2.dp
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.VisibilityOff,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(12.dp),
+                                    tint = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Text(
+                                    text = "Comentario oculto",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
                 }
                 
-                if (fecha.isNotEmpty()) {
-                    Text(
-                        text = fecha,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (fecha.isNotEmpty()) {
+                        Text(
+                            text = fecha,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
+                    // Menú de administrador (solo visible para admins)
+                    if (isAdmin) {
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "Opciones de administrador",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Ocultar comentario") },
+                                    onClick = {
+                                        scope.launch {
+                                            val result = publicacionViewModel?.ocultarComentario(
+                                                comentarioDomain.idComentario,
+                                                "Ocultado por administrador",
+                                                publicacionId
+                                            )
+                                            result?.onSuccess {
+                                                Toast.makeText(context, "Comentario ocultado", Toast.LENGTH_SHORT).show()
+                                            }?.onFailure {
+                                                Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                        showMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.VisibilityOff,
+                                            contentDescription = null
+                                        )
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Mostrar comentario") },
+                                    onClick = {
+                                        scope.launch {
+                                            val result = publicacionViewModel?.mostrarComentario(
+                                                comentarioDomain.idComentario,
+                                                publicacionId
+                                            )
+                                            result?.onSuccess {
+                                                Toast.makeText(context, "Comentario desocultado", Toast.LENGTH_SHORT).show()
+                                            }?.onFailure {
+                                                Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                        showMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Visibility,
+                                            contentDescription = null
+                                        )
+                                    }
+                                )
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = { Text("Borrar comentario") },
+                                    onClick = {
+                                        scope.launch {
+                                            val result = publicacionViewModel?.deleteComentario(
+                                                comentarioDomain.idComentario,
+                                                publicacionId
+                                            )
+                                            result?.onSuccess {
+                                                Toast.makeText(context, "Comentario eliminado", Toast.LENGTH_SHORT).show()
+                                            }?.onFailure {
+                                                Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                        showMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    colors = MenuDefaults.itemColors(
+                                        textColor = MaterialTheme.colorScheme.error
+                                    )
+                                )
+                            }
+                        }
+                    }
                 }
             }
             
@@ -651,7 +806,7 @@ private fun CommentCard(
             
             // Contenido del comentario
             Text(
-                text = comentario,
+                text = comentarioDomain.comentario,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
