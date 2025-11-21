@@ -225,16 +225,21 @@ fun WriteCommentScreen(
             }
 
             // Campos de texto
-            OutlinedTextField( /*...*/ value = title.text, onValueChange = {title = TextFieldValue(it)}, placeholder = {Text("Título...")}, modifier= Modifier.fillMaxWidth(), singleLine = true)
+            // Solo mostrar el campo de título si NO se está comentando en una publicación
+            if (tema.ubicacion != "Publicación") {
+                OutlinedTextField( /*...*/ value = title.text, onValueChange = {title = TextFieldValue(it)}, placeholder = {Text("Título...")}, modifier= Modifier.fillMaxWidth(), singleLine = true)
+            }
             OutlinedTextField( /*...*/ value = comment.text, onValueChange = {comment = TextFieldValue(it)}, placeholder = {Text("Comentario...")}, modifier= Modifier.fillMaxWidth().height(120.dp), maxLines=5)
 
-
             // === SECCIÓN DE FOTOS - Interfaz de Usuario ===
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            // Solo mostrar la sección de fotos si NO se está comentando en una publicación
+            // (cuando tema.ubicacion == "Publicación", se oculta esta sección)
+            if (tema.ubicacion != "Publicación") {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                 // --- VISTA PREVIA DE LA IMAGEN ---
                 if (photoUriString.isNullOrEmpty()) {
                     // Muestra texto instructivo cuando no hay foto seleccionada
@@ -309,6 +314,7 @@ fun WriteCommentScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Eliminar Foto")
                     }
+                }
                 }
             }
 
