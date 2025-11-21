@@ -87,7 +87,7 @@ class NotificacionViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            val result = notificacionRepository.marcarComoLeida(notificacionId)
+            val result = notificacionRepository.marcarComoLeida(notificacionId, usuarioId)
             result.fold(
                 onSuccess = {
                     _successMessage.value = "Notificación marcada como leída"
@@ -124,12 +124,12 @@ class NotificacionViewModel(
         }
     }
 
-    // Eliminar una notificación
+    // Eliminar una notificación de la base de datos
     fun eliminarNotificacion(notificacionId: Long, usuarioId: Long) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            val result = notificacionRepository.eliminarNotificacion(notificacionId)
+            val result = notificacionRepository.eliminarNotificacion(notificacionId, usuarioId)
             result.fold(
                 onSuccess = {
                     _successMessage.value = "Notificación eliminada"
@@ -142,6 +142,23 @@ class NotificacionViewModel(
                 }
             )
             _isLoading.value = false
+        }
+    }
+
+    // Eliminar una notificación solo de la UI (no de la base de datos)
+    fun ocultarNotificacionDeUI(notificacionId: Long) {
+        val notificacionesActuales = _notificaciones.value.toMutableList()
+        
+        // Buscar la notificación antes de eliminarla para verificar si estaba leída
+        val notificacionEliminada = notificacionesActuales.find { it.idNotificacion == notificacionId }
+        
+        // Eliminar de la lista
+        notificacionesActuales.removeAll { it.idNotificacion == notificacionId }
+        _notificaciones.value = notificacionesActuales
+        
+        // Actualizar el conteo si la notificación no estaba leída
+        if (notificacionEliminada != null && !notificacionEliminada.leida) {
+            _countNoLeidas.value = maxOf(0, _countNoLeidas.value - 1)
         }
     }
 

@@ -57,5 +57,31 @@ interface ComentarioApi {
     // DELETE /api/v1/comentario/comentarios/{id}
     @DELETE("api/v1/comentario/comentarios/{id}")
     suspend fun eliminarComentario(@Path("id") id: Long): Response<Unit>
+    
+    // ========== NOTIFICACIONES ==========
+    
+    // GET /api/v1/comentario/notificaciones/usuario/{usuarioId}
+    @GET("api/v1/comentario/notificaciones/usuario/{usuarioId}")
+    suspend fun getNotificacionesPorUsuario(@Path("usuarioId") usuarioId: Long): List<NotificacionDto>
+    
+    // GET /api/v1/comentario/notificaciones/usuario/{usuarioId}/no-leidas
+    @GET("api/v1/comentario/notificaciones/usuario/{usuarioId}/no-leidas")
+    suspend fun getNotificacionesNoLeidasPorUsuario(@Path("usuarioId") usuarioId: Long): List<NotificacionDto>
+    
+    // GET /api/v1/comentario/notificaciones/usuario/{usuarioId}/no-leidas/count
+    @GET("api/v1/comentario/notificaciones/usuario/{usuarioId}/no-leidas/count")
+    suspend fun contarNotificacionesNoLeidas(@Path("usuarioId") usuarioId: Long): Long
+    
+    // PUT /api/v1/comentario/notificaciones/{id}/marcar-leida
+    @PUT("api/v1/comentario/notificaciones/{id}/marcar-leida")
+    suspend fun marcarNotificacionComoLeida(@Path("id") id: Long): NotificacionDto
+    
+    // PUT /api/v1/comentario/notificaciones/usuario/{usuarioId}/marcar-todas-leidas
+    @PUT("api/v1/comentario/notificaciones/usuario/{usuarioId}/marcar-todas-leidas")
+    suspend fun marcarTodasComoLeidas(@Path("usuarioId") usuarioId: Long): Response<Unit>
+    
+    // DELETE /api/v1/comentario/notificaciones/{id}
+    @DELETE("api/v1/comentario/notificaciones/{id}")
+    suspend fun eliminarNotificacion(@Path("id") id: Long): Response<Unit>
 }
 

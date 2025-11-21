@@ -615,6 +615,75 @@ fun PublicationDetailScreen(
 }
 
 @Composable
+fun OcultarComentarioDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var motivo by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Ocultar Comentario",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Por favor, escribe el motivo por el cual se está ocultando este comentario. Este mensaje se enviará como notificación al usuario.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                OutlinedTextField(
+                    value = motivo,
+                    onValueChange = { 
+                        motivo = it
+                        error = null
+                    },
+                    label = { Text("Motivo de ocultación") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 5,
+                    isError = error != null,
+                    supportingText = {
+                        if (error != null) {
+                            Text(
+                                text = error ?: "",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (motivo.trim().isEmpty()) {
+                        error = "El motivo es obligatorio"
+                    } else {
+                        onConfirm(motivo.trim())
+                    }
+                }
+            ) {
+                Text("Confirmar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+
+@Composable
 private fun CommentCard(
     comentarioDomain: com.example.qualifygym_grupo13.data.domain.ComentarioDomain,
     autor: String,
@@ -626,6 +695,7 @@ private fun CommentCard(
     context: android.content.Context
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showMotivoDialog by remember { mutableStateOf(false) }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -722,48 +792,30 @@ private fun CommentCard(
                                 onDismissRequest = { showMenu = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("Ocultar comentario") },
+                                    text = { Text(if (comentarioDomain.oculto) "Mostrar comentario" else "Ocultar comentario") },
                                     onClick = {
-                                        scope.launch {
-                                            val result = publicacionViewModel?.ocultarComentario(
-                                                comentarioDomain.idComentario,
-                                                "Ocultado por administrador",
-                                                publicacionId
-                                            )
-                                            result?.onSuccess {
-                                                Toast.makeText(context, "Comentario ocultado", Toast.LENGTH_SHORT).show()
-                                            }?.onFailure {
-                                                Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
+                                        if (comentarioDomain.oculto) {
+                                            // Si está oculto, mostrar directamente sin diálogo
+                                            scope.launch {
+                                                val result = publicacionViewModel?.mostrarComentario(
+                                                    comentarioDomain.idComentario,
+                                                    publicacionId
+                                                )
+                                                result?.onSuccess {
+                                                    Toast.makeText(context, "Comentario desocultado", Toast.LENGTH_SHORT).show()
+                                                }?.onFailure {
+                                                    Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
+                                                }
                                             }
+                                        } else {
+                                            // Si no está oculto, mostrar diálogo para escribir motivo
+                                            showMotivoDialog = true
                                         }
                                         showMenu = false
                                     },
                                     leadingIcon = {
                                         Icon(
-                                            Icons.Default.VisibilityOff,
-                                            contentDescription = null
-                                        )
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Mostrar comentario") },
-                                    onClick = {
-                                        scope.launch {
-                                            val result = publicacionViewModel?.mostrarComentario(
-                                                comentarioDomain.idComentario,
-                                                publicacionId
-                                            )
-                                            result?.onSuccess {
-                                                Toast.makeText(context, "Comentario desocultado", Toast.LENGTH_SHORT).show()
-                                            }?.onFailure {
-                                                Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
-                                            }
-                                        }
-                                        showMenu = false
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Visibility,
+                                            if (comentarioDomain.oculto) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                             contentDescription = null
                                         )
                                     }
@@ -811,5 +863,27 @@ private fun CommentCard(
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
+    }
+    
+    // Diálogo para escribir motivo de ocultación
+    if (showMotivoDialog) {
+        OcultarComentarioDialog(
+            onDismiss = { showMotivoDialog = false },
+            onConfirm = { motivo ->
+                scope.launch {
+                    val result = publicacionViewModel?.ocultarComentario(
+                        comentarioDomain.idComentario,
+                        motivo,
+                        publicacionId
+                    )
+                    result?.onSuccess {
+                        Toast.makeText(context, "Comentario ocultado", Toast.LENGTH_SHORT).show()
+                    }?.onFailure {
+                        Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                showMotivoDialog = false
+            }
+        )
     }
 }

@@ -103,11 +103,8 @@ fun NotificationsScreen(
                                 }
                             },
                             onDelete = {
-                                if (currentUserId != null) {
-                                    scope.launch {
-                                        notificacionViewModel?.eliminarNotificacion(notificacion.idNotificacion, currentUserId)
-                                    }
-                                }
+                                // Eliminar solo de la UI, no de la base de datos
+                                notificacionViewModel?.ocultarNotificacionDeUI(notificacion.idNotificacion)
                             }
                         )
                     }

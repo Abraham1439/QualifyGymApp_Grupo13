@@ -73,8 +73,11 @@ fun AppRoot() { // Raíz de la app para separar responsabilidades (se conserva)
         )
     )
 
-    // Repositorio y ViewModel de notificaciones
-    val notificacionRepository = NotificacionRepository(RemoteModule.publicacionApi)
+    // Repositorio y ViewModel de notificaciones (usa ambos microservicios)
+    val notificacionRepository = NotificacionRepository(
+        RemoteModule.publicacionApi,
+        RemoteModule.comentarioApi
+    )
     val notificacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.NotificacionViewModel = viewModel(
         factory = com.example.qualifygym_grupo13.ui.viewmodel.NotificacionViewModelFactory(notificacionRepository)
     )
