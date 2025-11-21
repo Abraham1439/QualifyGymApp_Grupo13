@@ -521,6 +521,7 @@ fun AppNavGraph(
                     }
                     
                     // Crear tema con información de la publicación
+                    // Siempre usar "Publicación" como ubicacion desde el inicio para evitar parpadeo
                     val tema = remember(publicacionInfo) {
                         publicacionInfo?.let { pub ->
                             com.example.qualifygym_grupo13.data.model.Tema(
@@ -534,7 +535,7 @@ fun AppNavGraph(
                             id = postId,
                             nombre = "Publicación",
                             descripcion = "Comentando en publicación",
-                            ubicacion = "Foro",
+                            ubicacion = "Publicación", // Cambiado de "Foro" a "Publicación" para evitar parpadeo
                             numeroComentarios = 0
                         )
                     }

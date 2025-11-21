@@ -93,13 +93,20 @@ fun WriteCommentScreen(
     var title by remember { mutableStateOf(TextFieldValue("")) }
     var comment by remember { mutableStateOf(TextFieldValue("")) }
 
+    // Determinar si se está comentando en una publicación (no en un tema del foro)
+    val isComentandoEnPublicacion = remember(tema.ubicacion) {
+        tema.ubicacion == "Publicación"
+    }
+
     // ==========================================================
     // === LÓGICA DE CÁMARA - Configuración y Estados ===
     // ==========================================================
+    // Solo inicializar la lógica de cámara si NO se está comentando en una publicación
     val context = LocalContext.current // Obtiene el contexto de la aplicación actual
 
     // Estado persistente para guardar la URI de la foto como String
     // Se mantiene durante cambios de configuración (rotación de pantalla, etc.)
+    // Solo se inicializa si NO se está comentando en una publicación
     var photoUriString by rememberSaveable { mutableStateOf<String?>(null) }
     
     // Estado temporal para la URI antes de lanzar la cámara (no persistente)
@@ -114,6 +121,7 @@ fun WriteCommentScreen(
 
     // Launcher para la aplicación de cámara usando ActivityResultContracts
     // Este launcher maneja la comunicación con la aplicación de cámara del sistema
+    // Solo se inicializa si NO se está comentando en una publicación
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture(), // Contrato para tomar fotos
         onResult = { success -> // Callback que se ejecuta cuando la cámara termina
@@ -131,6 +139,7 @@ fun WriteCommentScreen(
 
     // Launcher para la galería usando ActivityResultContracts
     // Este launcher maneja la selección de imágenes desde la galería del dispositivo
+    // Solo se inicializa si NO se está comentando en una publicación
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(), // Contrato para seleccionar contenido
         onResult = { uri -> // Callback que se ejecuta cuando se selecciona una imagen
@@ -144,6 +153,7 @@ fun WriteCommentScreen(
     )
     
     // Launcher para solicitar permisos de cámara
+    // Solo se inicializa si NO se está comentando en una publicación
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -163,6 +173,7 @@ fun WriteCommentScreen(
     /**
      * Función para manejar el clic del botón de tomar foto
      * Verifica permisos antes de abrir la cámara
+     * Solo se usa si NO se está comentando en una publicación
      */
     fun handleTakePhotoClick() {
         if (hasCameraPermission(context)) {
@@ -226,15 +237,15 @@ fun WriteCommentScreen(
 
             // Campos de texto
             // Solo mostrar el campo de título si NO se está comentando en una publicación
-            if (tema.ubicacion != "Publicación") {
+            if (!isComentandoEnPublicacion) {
                 OutlinedTextField( /*...*/ value = title.text, onValueChange = {title = TextFieldValue(it)}, placeholder = {Text("Título...")}, modifier= Modifier.fillMaxWidth(), singleLine = true)
             }
             OutlinedTextField( /*...*/ value = comment.text, onValueChange = {comment = TextFieldValue(it)}, placeholder = {Text("Comentario...")}, modifier= Modifier.fillMaxWidth().height(120.dp), maxLines=5)
 
             // === SECCIÓN DE FOTOS - Interfaz de Usuario ===
-            // Solo mostrar la sección de fotos si NO se está comentando en una publicación
-            // (cuando tema.ubicacion == "Publicación", se oculta esta sección)
-            if (tema.ubicacion != "Publicación") {
+            // Completamente eliminada cuando se está comentando en una publicación
+            // Solo se muestra cuando se comenta en un tema del foro
+            if (!isComentandoEnPublicacion) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -324,7 +335,12 @@ fun WriteCommentScreen(
             Button(
                 onClick = {
                     // Prepara la lista de URIs de fotos para enviar al callback
-                    val photoUris = if (photoUriString != null) listOf(photoUriString!!) else emptyList()
+                    // Si se está comentando en una publicación, siempre enviar lista vacía
+                    val photoUris = if (!isComentandoEnPublicacion && photoUriString != null) {
+                        listOf(photoUriString!!)
+                    } else {
+                        emptyList()
+                    }
                     
                     // Llama al callback con el título, comentario y lista de fotos
                     onPublishClick(title.text, comment.text, photoUris)
@@ -341,7 +357,8 @@ fun WriteCommentScreen(
     }
 
     // === DIÁLOGO DE CONFIRMACIÓN PARA ELIMINAR LA FOTO ===
-    if (showDeleteDialog) {
+    // Solo mostrar si NO se está comentando en una publicación
+    if (!isComentandoEnPublicacion && showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false }, // Cierra el diálogo si toca fuera
             title = { Text("Confirmar Eliminación") },
@@ -362,7 +379,8 @@ fun WriteCommentScreen(
     }
 
     // === DIÁLOGO DE PERMISOS PA LA CÁMARA ===
-    if (showPermissionDialog) {
+    // Solo mostrar si NO se está comentando en una publicación
+    if (!isComentandoEnPublicacion && showPermissionDialog) {
         AlertDialog(
             onDismissRequest = { showPermissionDialog = false },
             title = { Text("Permiso de Cámara") },
