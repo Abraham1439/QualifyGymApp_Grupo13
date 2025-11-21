@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 
 class PublicacionViewModel(
     private val publicacionRepository: PublicacionRepository,
@@ -87,6 +88,9 @@ class PublicacionViewModel(
     // Publicaciones del usuario actual
     private val _userPublicaciones = MutableStateFlow<List<PublicacionDomain>>(emptyList())
     val userPublicaciones: StateFlow<List<PublicacionDomain>> = _userPublicaciones
+
+    // Mapa para mantener StateFlows de comentarios por publicaciónId
+    private val _comentariosFlows = ConcurrentHashMap<Long, MutableStateFlow<List<ComentarioDomain>>>()
 
     // Crear una nueva publicación
     suspend fun createPublicacion(
@@ -216,21 +220,44 @@ class PublicacionViewModel(
         
         val result = comentarioRepository.create(createDto)
         return result.fold(
-            onSuccess = { dto -> Result.success(dto.idComentario) },
+            onSuccess = { dto -> 
+                // Recargar comentarios de esta publicación después de crear uno nuevo
+                reloadComentariosForPublicacion(publicacionId)
+                Result.success(dto.idComentario) 
+            },
             onFailure = { error -> Result.failure(error) }
         )
     }
 
     // Obtener comentarios de una publicación específica
     fun getComentariosByPublicacionId(publicacionId: Long): StateFlow<List<ComentarioDomain>> {
-        val flow = MutableStateFlow<List<ComentarioDomain>>(emptyList())
+        // Obtener o crear el StateFlow para esta publicación
+        val flow = _comentariosFlows.getOrPut(publicacionId) {
+            MutableStateFlow<List<ComentarioDomain>>(emptyList())
+        }
+        
+        // Cargar comentarios si el StateFlow está vacío o si necesitamos refrescar
         viewModelScope.launch {
             val result = comentarioRepository.fetchComentariosPorPublicacion(publicacionId)
             result.onSuccess { dtos ->
                 flow.value = dtos.map { it.toComentarioDomain() }
             }
         }
+        
         return flow
+    }
+    
+    // Recargar comentarios para una publicación específica
+    private fun reloadComentariosForPublicacion(publicacionId: Long) {
+        val flow = _comentariosFlows[publicacionId]
+        if (flow != null) {
+            viewModelScope.launch {
+                val result = comentarioRepository.fetchComentariosPorPublicacion(publicacionId)
+                result.onSuccess { dtos ->
+                    flow.value = dtos.map { it.toComentarioDomain() }
+                }
+            }
+        }
     }
 
     // Ocultar una publicación

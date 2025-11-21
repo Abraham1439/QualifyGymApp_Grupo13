@@ -201,8 +201,11 @@ fun PublicationDetailScreen(
     var isLoading by remember { mutableStateOf(true) }
     var showAdminMenu by remember { mutableStateOf(false) }
     
-    // Obtener comentarios de la base de datos
-    val comentariosDb = publicacionViewModel?.getComentariosByPublicacionId(postId.toLongOrNull() ?: 0)?.collectAsState(initial = emptyList())?.value ?: emptyList()
+    // Obtener comentarios de la base de datos usando remember para mantener el StateFlow estable
+    val comentariosFlow = remember(postId) {
+        publicacionViewModel?.getComentariosByPublicacionId(postId.toLongOrNull() ?: 0)
+    }
+    val comentariosDb by comentariosFlow?.collectAsState(initial = emptyList()) ?: remember { mutableStateOf(emptyList()) }
     
     // Mapa para almacenar nombres de usuarios (key: userId, value: userName)
     var userNamesMap by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
