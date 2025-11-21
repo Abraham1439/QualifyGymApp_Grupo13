@@ -161,7 +161,7 @@ class UsuarioRepository(
                         if (errorBody.contains("Credenciales inválidas")) {
                             "Email o contraseña incorrectos. Verifica tus credenciales."
                         } else {
-                            "Credenciales inválidas: $errorBody"
+                            "Error al conectar con el servidor. $errorBody" //Este error se ejecuta cuando los microservicios estan privados (usuario) xd
                         }
                     }
                     400 -> "Datos inválidos: $errorBody"
