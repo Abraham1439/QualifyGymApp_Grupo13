@@ -18,6 +18,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import com.example.qualifygym_grupo13.domain.validation.validateStrongPassword
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
@@ -31,6 +33,7 @@ fun ChangePasswordScreen(
     onPasswordChanged: () -> Unit,
     onBack: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     
     var currentPassword by remember { mutableStateOf("") }
@@ -41,7 +44,6 @@ fun ChangePasswordScreen(
     var showConfirmPassword by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
-    var successMessage by remember { mutableStateOf("") }
     var currentPasswordError by remember { mutableStateOf<String?>(null) }
     var newPasswordErrors by remember { mutableStateOf<List<String>>(emptyList()) }
     var confirmPasswordError by remember { mutableStateOf<String?>(null) }
@@ -94,7 +96,7 @@ fun ChangePasswordScreen(
         
         Spacer(Modifier.height(24.dp))
 
-        // Mensajes de error y éxito
+        // Mensajes de error
         if (errorMessage.isNotEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -109,27 +111,12 @@ fun ChangePasswordScreen(
             Spacer(Modifier.height(16.dp))
         }
 
-        if (successMessage.isNotEmpty()) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-            ) {
-                Text(
-                    text = successMessage,
-                    modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-            Spacer(Modifier.height(16.dp))
-        }
-
             // Campo para la contraseña actual
             OutlinedTextField(
                 value = currentPassword,
                 onValueChange = { 
                     currentPassword = it
                     errorMessage = ""
-                    successMessage = ""
                     currentPasswordError = null
                 },
                 label = { Text("Contraseña Actual") },
@@ -163,7 +150,6 @@ fun ChangePasswordScreen(
                 onValueChange = { 
                     newPassword = it
                     errorMessage = ""
-                    successMessage = ""
                 },
                 label = { Text("Nueva Contraseña") },
                 singleLine = true,
@@ -206,7 +192,6 @@ fun ChangePasswordScreen(
                 onValueChange = { 
                     confirmPassword = it
                     errorMessage = ""
-                    successMessage = ""
                 },
                 label = { Text("Confirmar Nueva Contraseña") },
                 singleLine = true,
@@ -238,7 +223,6 @@ fun ChangePasswordScreen(
                 onClick = {
                     // Limpiar mensajes previos
                     errorMessage = ""
-                    successMessage = ""
                     currentPasswordError = null
                     
                     // Validaciones
@@ -281,7 +265,7 @@ fun ChangePasswordScreen(
                         isLoading = false
                         
                         if (result?.isSuccess == true) {
-                            successMessage = "Contraseña cambiada exitosamente"
+                            Toast.makeText(context, "Contraseña cambiada con exito", Toast.LENGTH_SHORT).show()
                             delay(1500)
                             onPasswordChanged()
                         } else {

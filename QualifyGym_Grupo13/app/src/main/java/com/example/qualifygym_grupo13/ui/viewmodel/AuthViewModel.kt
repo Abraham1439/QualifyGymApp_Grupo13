@@ -201,7 +201,34 @@ class AuthViewModel(
     }
 
     fun onRegisterEmailChange(value: String) {              // Handler del email
-        _register.update { it.copy(email = value, emailError = validateEmail(value)) } // Guardamos + validamos
+        // Validación local primero
+        val localError = validateEmail(value)
+        _register.update {                                  // Guardamos + validamos
+            it.copy(email = value, emailError = localError)
+        }
+        
+        // Si la validación local pasa, verificar si el email ya existe
+        if (localError == null && value.isNotBlank()) {
+            viewModelScope.launch {
+                delay(500) // Debounce para evitar demasiadas llamadas
+                
+                // Verificar que el email no haya cambiado mientras esperábamos
+                if (_register.value.email == value) {
+                    val emailExistsResult = repository.findUsuarioByEmail(value.trim())
+                    val emailExists = emailExistsResult.getOrNull() != null
+                    
+                    _register.update {
+                        if (emailExists) {
+                            it.copy(emailError = "El correo electrónico ya está registrado")
+                        } else {
+                            it.copy(emailError = null) // Limpiar error si no existe
+                        }
+                    }
+                    recomputeRegisterCanSubmit()
+                }
+            }
+        }
+        
         recomputeRegisterCanSubmit()
     }
 

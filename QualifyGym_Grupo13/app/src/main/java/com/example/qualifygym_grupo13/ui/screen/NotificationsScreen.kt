@@ -105,6 +105,7 @@ fun NotificationsScreen(
                             onDelete = {
                                 // Eliminar solo de la UI, no de la base de datos
                                 notificacionViewModel?.ocultarNotificacionDeUI(notificacion.idNotificacion)
+                                Toast.makeText(context, "Notificacion Eliminada", Toast.LENGTH_SHORT).show()
                             }
                         )
                     }

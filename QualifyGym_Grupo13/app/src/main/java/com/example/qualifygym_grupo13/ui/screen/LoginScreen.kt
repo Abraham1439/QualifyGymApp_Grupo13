@@ -76,8 +76,7 @@ fun LoginScreenVm(                  // Pantalla Login conectada al VM
         onEmailChange = vm::onLoginEmailChange,              // Handler email
         onPassChange = vm::onLoginPassChange,                // Handler pass
         onSubmit = vm::submitLogin,                          // Acción enviar
-        onGoRegister = onGoRegister,                         // Ir a Registro
-        onGoForgot = vm::clearLoginResult                    // Limpia estado antes de navegar (callback placeholder)
+        onGoRegister = onGoRegister                          // Ir a Registro
     )
 }
 
@@ -96,8 +95,7 @@ private fun LoginScreen(
     onEmailChange: (String) -> Unit,                         // Handler cambio email
     onPassChange: (String) -> Unit,                          // Handler cambio password
     onSubmit: () -> Unit,                                    // Acción enviar
-    onGoRegister: () -> Unit,                                // Acción ir a registro
-    onGoForgot: () -> Unit                                   // Acción ir a recuperar
+    onGoRegister: () -> Unit                                 // Acción ir a registro
 ) {
     val bg = MaterialTheme.colorScheme.surface // Fondo distinto para contraste
     //4 Agregamos la siguiente linea
@@ -127,7 +125,7 @@ private fun LoginScreen(
             )
 
             Text(
-                text = "Login",
+                text = "Inicio de sesión",
                 style = MaterialTheme.typography.headlineSmall // Título
             )
             Spacer(Modifier.height(12.dp)) // Separación
@@ -202,11 +200,6 @@ private fun LoginScreen(
             }
 
             Spacer(Modifier.height(12.dp))                   // Espacio
-
-            // Enlace Recuperar contraseña
-            TextButton(onClick = onGoForgot, modifier = Modifier.fillMaxWidth()) {
-                Text("Recuperar contraseña")
-            }
 
             // ---------- BOTÓN IR A REGISTRO ----------
             OutlinedButton(onClick = onGoRegister, modifier = Modifier.fillMaxWidth()) {
