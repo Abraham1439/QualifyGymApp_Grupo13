@@ -19,6 +19,7 @@ import android.widget.Toast
 import com.example.qualifygym_grupo13.data.domain.PublicacionDomain
 import com.example.qualifygym_grupo13.data.domain.UserDomain
 import com.example.qualifygym_grupo13.data.repository.UsuarioRepository
+import com.example.qualifygym_grupo13.data.repository.ComentarioRepository
 import com.example.qualifygym_grupo13.data.repository.toUserDomain
 import kotlinx.coroutines.launch
 
@@ -112,24 +113,31 @@ fun ModeratorDashboardContent(
     val publicaciones by publicacionViewModel?.allPublicaciones?.collectAsState() ?: remember { mutableStateOf(emptyList<PublicacionDomain>()) }
     
     val usuarioRepository = remember { UsuarioRepository() }
+    val comentarioRepository = remember { ComentarioRepository() }
     var totalUsuarios by remember { mutableStateOf(0) }
     var totalComentarios by remember { mutableStateOf(0) }
     var isLoading by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
     
     LaunchedEffect(Unit) {
         publicacionViewModel?.loadAllPublicacionesIncluyendoOcultas()
-        publicacionViewModel?.let { vm ->
+        scope.launch {
             // Cargar usuarios
-            val result = usuarioRepository.fetchUsuarios()
-            result.onSuccess { usuarios ->
+            val usuariosResult = usuarioRepository.fetchUsuarios()
+            usuariosResult.onSuccess { usuarios ->
                 totalUsuarios = usuarios.size
-                isLoading = false
-            }.onFailure {
-                isLoading = false
             }
-        } ?: run { isLoading = false }
-        // TODO: Obtener comentarios del microservicio
-        totalComentarios = 0
+            
+            // Cargar todos los comentarios (sin filtrar ocultos)
+            val comentariosResult = comentarioRepository.fetchComentarios()
+            comentariosResult.onSuccess { comentarios ->
+                totalComentarios = comentarios.size
+            }.onFailure {
+                totalComentarios = 0
+            }
+            
+            isLoading = false
+        }
     }
     
     LazyColumn(
@@ -159,7 +167,7 @@ fun ModeratorDashboardContent(
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
-                    title = "Posts",
+                    title = "Publicaciones",
                     value = publicaciones.size.toString(),
                     icon = Icons.Default.Article,
                     color = Color(0xFF424242),
@@ -423,22 +431,35 @@ fun ModeratorStatisticsContent(
 ) {
     val publicaciones by publicacionViewModel?.allPublicaciones?.collectAsState() ?: remember { mutableStateOf(emptyList<PublicacionDomain>()) }
     val usuarioRepository = remember { UsuarioRepository() }
+    val comentarioRepository = remember { ComentarioRepository() }
     var usuarios by remember { mutableStateOf<List<UserDomain>>(emptyList()) }
     var usuariosDto by remember { mutableStateOf<List<com.example.qualifygym_grupo13.data.remote.dto.UsuarioDto>>(emptyList()) }
+    var totalComentarios by remember { mutableStateOf(0) }
+    var comentariosOcultos by remember { mutableStateOf(0) }
     var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
     
     LaunchedEffect(Unit) {
         publicacionViewModel?.loadAllPublicacionesIncluyendoOcultas()
         scope.launch {
-            val result = usuarioRepository.fetchUsuarios()
-            result.onSuccess { dtos ->
+            // Cargar usuarios
+            val usuariosResult = usuarioRepository.fetchUsuarios()
+            usuariosResult.onSuccess { dtos ->
                 usuariosDto = dtos
                 usuarios = dtos.map { it.toUserDomain() }
-                isLoading = false
-            }.onFailure {
-                isLoading = false
             }
+            
+            // Cargar comentarios y contar los que no están ocultos y los ocultos
+            val comentariosResult = comentarioRepository.fetchComentarios()
+            comentariosResult.onSuccess { comentarios ->
+                totalComentarios = comentarios.count { !it.oculto }
+                comentariosOcultos = comentarios.count { it.oculto }
+            }.onFailure {
+                totalComentarios = 0
+                comentariosOcultos = 0
+            }
+            
+            isLoading = false
         }
     }
     
@@ -541,7 +562,7 @@ fun ModeratorStatisticsContent(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Publicaciones",
+                            text = "Publicaciones y Comentarios (Visibles)",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -553,13 +574,13 @@ fun ModeratorStatisticsContent(
                     ) {
                         DetailedStatCard(
                             value = publicaciones.count { !it.oculta }.toString(),
-                            label = "Total Posts",
+                            label = "Total Publicaciones",
                             color = Color(0xFF424242),
                             icon = Icons.Default.Article,
                             modifier = Modifier.weight(1f)
                         )
                         DetailedStatCard(
-                            value = "0", // TODO: Obtener de comentarios
+                            value = if (isLoading) "..." else totalComentarios.toString(),
                             label = "Total Comentarios",
                             color = Color(0xFF424242),
                             icon = Icons.Default.Comment,
@@ -570,6 +591,14 @@ fun ModeratorStatisticsContent(
                     DetailedStatCard(
                         value = publicaciones.count { it.oculta }.toString(),
                         label = "Publicaciones Ocultas",
+                        color = Color(0xFFD32F2F),
+                        icon = Icons.Default.VisibilityOff,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    DetailedStatCard(
+                        value = if (isLoading) "..." else comentariosOcultos.toString(),
+                        label = "Comentarios Ocultos",
                         color = Color(0xFFD32F2F),
                         icon = Icons.Default.VisibilityOff,
                         modifier = Modifier.fillMaxWidth()

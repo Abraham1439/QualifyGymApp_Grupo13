@@ -72,6 +72,11 @@ class PublicacionViewModel(
             }
         }
     }
+    
+    // Método público para recargar temas (usado en Admin Dashboard)
+    fun loadAllTemasPublic() {
+        loadAllTemas()
+    }
 
     // Estado de carga
     private val _isLoading = MutableStateFlow(false)

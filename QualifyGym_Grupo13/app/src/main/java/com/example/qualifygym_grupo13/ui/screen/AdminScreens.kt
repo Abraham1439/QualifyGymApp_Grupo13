@@ -130,6 +130,7 @@ fun AdminDashboardContent(
     
     LaunchedEffect(Unit) {
         publicacionViewModel?.loadAllPublicacionesIncluyendoOcultas()
+        publicacionViewModel?.loadAllTemasPublic() // Recargar temas para asegurar que se carguen correctamente
         scope.launch {
             // Cargar usuarios
             val usuariosResult = usuarioRepository.fetchUsuarios()
@@ -176,7 +177,7 @@ fun AdminDashboardContent(
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
-                    title = "Posts",
+                    title = "Publicaciones",
                     value = publicaciones.size.toString(),
                     icon = Icons.Default.Article,
                     color = Color(0xFF424242),
@@ -524,6 +525,11 @@ fun ManageThemesContent(
 ) {
     val temas by publicacionViewModel?.allTemas?.collectAsState() ?: remember { mutableStateOf(emptyList<TemaDomain>()) }
     
+    // Recargar temas cuando se abre esta pantalla
+    LaunchedEffect(Unit) {
+        publicacionViewModel?.loadAllTemasPublic()
+    }
+    
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(12.dp),
@@ -554,11 +560,13 @@ fun AdminStatisticsContent(
     var usuarios by remember { mutableStateOf<List<UserDomain>>(emptyList()) }
     var usuariosDto by remember { mutableStateOf<List<com.example.qualifygym_grupo13.data.remote.dto.UsuarioDto>>(emptyList()) }
     var totalComentarios by remember { mutableStateOf(0) }
+    var comentariosOcultos by remember { mutableStateOf(0) }
     var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
     
     LaunchedEffect(Unit) {
         publicacionViewModel?.loadAllPublicacionesIncluyendoOcultas()
+        publicacionViewModel?.loadAllTemasPublic() // Recargar temas
         scope.launch {
             // Cargar usuarios
             val usuariosResult = usuarioRepository.fetchUsuarios()
@@ -567,12 +575,14 @@ fun AdminStatisticsContent(
                 usuarios = dtos.map { it.toUserDomain() }
             }
             
-            // Cargar comentarios
+            // Cargar comentarios y contar los que no están ocultos y los ocultos
             val comentariosResult = comentarioRepository.fetchComentarios()
             comentariosResult.onSuccess { comentarios ->
-                totalComentarios = comentarios.size
+                totalComentarios = comentarios.count { !it.oculto }
+                comentariosOcultos = comentarios.count { it.oculto }
             }.onFailure {
                 totalComentarios = 0
+                comentariosOcultos = 0
             }
             
             isLoading = false
@@ -678,7 +688,7 @@ fun AdminStatisticsContent(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Publicaciones",
+                            text = "Publicaciones y Comentarios (Visibles)",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -690,13 +700,13 @@ fun AdminStatisticsContent(
                     ) {
                         DetailedStatCard(
                             value = publicaciones.count { !it.oculta }.toString(),
-                            label = "Total Posts",
+                            label = "Total Publicaciones",
                             color = Color(0xFF424242),
                             icon = Icons.Default.Article,
                             modifier = Modifier.weight(1f)
                         )
                         DetailedStatCard(
-                            value = totalComentarios.toString(),
+                            value = if (isLoading) "..." else totalComentarios.toString(),
                             label = "Total Comentarios",
                             color = Color(0xFF424242),
                             icon = Icons.Default.Comment,
@@ -707,6 +717,14 @@ fun AdminStatisticsContent(
                     DetailedStatCard(
                         value = publicaciones.count { it.oculta }.toString(),
                         label = "Publicaciones Ocultas",
+                        color = Color(0xFFD32F2F),
+                        icon = Icons.Default.VisibilityOff,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    DetailedStatCard(
+                        value = if (isLoading) "..." else comentariosOcultos.toString(),
+                        label = "Comentarios Ocultos",
                         color = Color(0xFFD32F2F),
                         icon = Icons.Default.VisibilityOff,
                         modifier = Modifier.fillMaxWidth()
