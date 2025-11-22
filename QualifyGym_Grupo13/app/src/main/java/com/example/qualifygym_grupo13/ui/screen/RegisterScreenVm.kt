@@ -10,9 +10,11 @@ import androidx.compose.material3.*                           // Material 3
 import androidx.compose.runtime.*                             // remember, Composable
 import androidx.compose.ui.Alignment                          // Alineaciones
 import androidx.compose.ui.Modifier                           // Modificador
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.*                       // KeyboardOptions/Types/Transformations
 import androidx.compose.ui.unit.dp                            // DPs
 import androidx.lifecycle.compose.collectAsStateWithLifecycle // Observa StateFlow
+import android.widget.Toast
 
 import com.example.qualifygym_grupo13.ui.viewmodel.AuthViewModel         // ViewModel
 
@@ -22,12 +24,16 @@ fun RegisterScreenVm(
     onRegisteredNavigateLogin: () -> Unit,                   // Navega a Login si success=true
     onGoLogin: () -> Unit                                    // Botón alternativo para ir a Login
 ) {
-
+    val context = LocalContext.current
     val state by vm.register.collectAsStateWithLifecycle()   // Observa estado en tiempo real
 
-    if (state.success) {                                     // Si registro fue exitoso
-        vm.clearLoginData()                             // Limpia banderas
-        onRegisteredNavigateLogin()                          // Navega a Login
+    // Mostrar Toast cuando el registro sea exitoso
+    LaunchedEffect(state.success) {
+        if (state.success) {
+            Toast.makeText(context, "Cuenta creada con exito", Toast.LENGTH_SHORT).show()
+            vm.clearLoginData()                             // Limpia banderas
+            onRegisteredNavigateLogin()                          // Navega a Login
+        }
     }
 
     RegisterScreen(                                          // Delegamos UI presentacional
