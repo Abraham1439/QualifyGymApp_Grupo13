@@ -48,7 +48,7 @@ fun validateStrongPassword(pass: String): List<String> { //Se cambia esto para q
         errors.add("Debe incluir un número") // Al menos 1 número
     }
     if (!pass.any { !it.isLetterOrDigit() }) {
-        errors.add("Debe incluir un símbolo") // Al menos 1 símbolo
+        errors.add("Debe incluir un caracter especial") // Al menos 1 símbolo
 
     }
     if (pass.contains(' ')) {

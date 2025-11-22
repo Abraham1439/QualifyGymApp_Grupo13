@@ -569,18 +569,24 @@ fun EditProfileScreen(
                             if (phone == digitsOnly) {
                                 val usuarioRepository = UsuarioRepository()
                                 val phoneExistsResult = usuarioRepository.findUsuarioByPhone(digitsOnly)
-                                val phoneExists = phoneExistsResult.getOrNull() != null
+                                val usuarioConTelefono = phoneExistsResult.getOrNull()
                                 
-                                if (phoneExists) {
+                                // Verificar si el teléfono existe y pertenece a otro usuario (no al actual)
+                                if (usuarioConTelefono != null && usuarioConTelefono.id != currentUser?.id) {
                                     phoneError = "El número telefónico ya está registrado"
                                 } else {
-                                    phoneError = null // Limpiar error si no existe
+                                    phoneError = null // Limpiar error si no existe o es del mismo usuario
                                 }
                             }
                         }
                     } else if (digitsOnly == currentPhone) {
                         // Si es el mismo teléfono actual, no hay error
                         phoneError = null
+                    } else if (localError == null && digitsOnly.length < 9) {
+                        // Si aún no tiene 9 dígitos, limpiar error de duplicado (pero mantener error de formato si existe)
+                        if (phoneError == "El número telefónico ya está registrado") {
+                            phoneError = null
+                        }
                     }
                 },
                 label = { Text("Teléfono") },
