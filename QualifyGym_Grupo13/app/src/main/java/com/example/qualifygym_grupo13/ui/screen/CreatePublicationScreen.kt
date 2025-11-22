@@ -70,7 +70,6 @@ fun CreatePublicationScreen(
     val temas = remember(temasRaw) { temasRaw.distinctBy { it.nombreTema } }
     val isLoading by publicacionViewModel?.isLoading?.collectAsState() ?: remember { mutableStateOf(false) }
     val errorMessage by publicacionViewModel?.errorMessage?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
-    val successMessage by publicacionViewModel?.successMessage?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
     
     var selectedTema by remember { mutableStateOf<com.example.qualifygym_grupo13.data.domain.TemaDomain?>(null) }
     var expanded by remember { mutableStateOf(false) }
@@ -82,7 +81,6 @@ fun CreatePublicationScreen(
     var photoUriString by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingCaptureUri by remember { mutableStateOf<Uri?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var showPermissionDialog by remember { mutableStateOf(false) }
 
     // Launcher para la aplicación de cámara usando ActivityResultContracts
     // Este launcher maneja la comunicación con la aplicación de cámara del sistema
@@ -144,8 +142,8 @@ fun CreatePublicationScreen(
             pendingCaptureUri = uri
             takePictureLauncher.launch(uri)
         } else {
-            // Si no tiene permisos, mostrar diálogo explicativo
-            showPermissionDialog = true
+            // Si no tiene permisos, solicitar directamente (el sistema mostrará su propio diálogo)
+            requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)
         }
     }
 
@@ -319,22 +317,6 @@ fun CreatePublicationScreen(
             Spacer(Modifier.height(8.dp))
         }
         
-        if (successMessage != null) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = successMessage!!,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
-            Spacer(Modifier.height(8.dp))
-        }
-        
         Spacer(Modifier.height(24.dp))
         
         // Botones de acción
@@ -453,28 +435,6 @@ fun CreatePublicationScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
-            }
-        )
-    }
-
-    // === DIÁLOGO DE PERMISOS DE CÁMARA ===
-    if (showPermissionDialog) {
-        AlertDialog(
-            onDismissRequest = { showPermissionDialog = false },
-            title = { Text("Permiso de Cámara") },
-            text = {
-                Text("Esta aplicación necesita acceso a la cámara para tomar fotos. ¿Permitir el acceso?")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showPermissionDialog = false
-                        requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)
-                    }
-                ) { Text("Permitir") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPermissionDialog = false }) { Text("Cancelar") }
             }
         )
     }

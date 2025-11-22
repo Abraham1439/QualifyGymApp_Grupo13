@@ -115,9 +115,6 @@ fun WriteCommentScreen(
     
     // Estado para controlar la visibilidad del diálogo de confirmación de borrado
     var showDeleteDialog by remember { mutableStateOf(false) }
-    
-    // Estado para controlar la visibilidad del diálogo de permisos de cámara
-    var showPermissionDialog by remember { mutableStateOf(false) }
 
     // Launcher para la aplicación de cámara usando ActivityResultContracts
     // Este launcher maneja la comunicación con la aplicación de cámara del sistema
@@ -183,8 +180,8 @@ fun WriteCommentScreen(
             pendingCaptureUri = uri
             takePictureLauncher.launch(uri)
         } else {
-            // Si no tiene permisos, mostrar diálogo explicativo
-            showPermissionDialog = true
+            // Si no tiene permisos, solicitar directamente (el sistema mostrará su propio diálogo)
+            requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)
         }
     }
 
@@ -378,26 +375,4 @@ fun WriteCommentScreen(
         )
     }
 
-    // === DIÁLOGO DE PERMISOS PA LA CÁMARA ===
-    // Solo mostrar si NO se está comentando en una publicación
-    if (!isComentandoEnPublicacion && showPermissionDialog) {
-        AlertDialog(
-            onDismissRequest = { showPermissionDialog = false },
-            title = { Text("Permiso de Cámara") },
-            text = {
-                Text("Esta aplicación necesita acceso a la cámara para tomar fotos. ¿Permitir el acceso?")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showPermissionDialog = false
-                        requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)
-                    }
-                ) { Text("Permitir") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPermissionDialog = false }) { Text("Cancelar") }
-            }
-        )
-    }
 }

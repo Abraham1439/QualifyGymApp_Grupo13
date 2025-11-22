@@ -19,7 +19,7 @@ fun UsuarioDto.toUserDomain(phone: String? = null, password: String = "", photoU
         password = password, // No viene del DTO por seguridad
         isAdmin = this.rol?.nombre?.equals("Administrador", ignoreCase = true) == true,
         isModerator = this.rol?.nombre?.equals("Moderador", ignoreCase = true) == true,
-        photoUrl = photoUrl
+        photoUrl = photoUrl ?: this.photoUrl // Usar el photoUrl del DTO si no se proporciona uno explícito
     )
 }
 
@@ -291,7 +291,8 @@ class UsuarioRepository(
                     password = passwordToUse, // Si está vacía, el microservicio no actualizará la contraseña
                     email = newEmail,
                     phone = newPhone,
-                    rolId = currentUser.rol?.id ?: 2L
+                    rolId = currentUser.rol?.id ?: 2L,
+                    photoUrl = currentUser.photoUrl // Preservar el photoUrl existente
                 )
                 
                 val result = update(userId, usuarioUpdate)
@@ -346,7 +347,7 @@ class UsuarioRepository(
         }
     }
 
-    // Actualizar foto de perfil (esto se maneja localmente, no en el microservicio)
+    // Actualizar foto de perfil (guardar ID de imagen en el backend)
     suspend fun updateProfilePhoto(userId: Long, photoPath: String?): Result<UserDomain> {
         return try {
             val currentUserResult = fetchUsuarioById(userId)
@@ -355,8 +356,24 @@ class UsuarioRepository(
             if (currentUser == null) {
                 Result.failure(IllegalArgumentException("Usuario no encontrado"))
             } else {
-                // La foto se guarda localmente, solo retornamos el usuario con la nueva foto
-                Result.success(currentUser.toUserDomain(photoUrl = photoPath))
+                // Actualizar el usuario en el backend con el nuevo photoUrl (ID de imagen)
+                val usuarioUpdate = UsuarioCreateDto(
+                    username = currentUser.username,
+                    password = "", // No actualizar contraseña
+                    email = currentUser.email,
+                    phone = currentUser.phone ?: "",
+                    rolId = currentUser.rol?.id,
+                    photoUrl = photoPath // Guardar el ID de la imagen
+                )
+                
+                val result = update(userId, usuarioUpdate)
+                result.fold(
+                    onSuccess = { usuario -> 
+                        // Usar el photoUrl del usuario actualizado o el que pasamos
+                        Result.success(usuario.toUserDomain(photoUrl = photoPath ?: usuario.photoUrl))
+                    },
+                    onFailure = { error -> Result.failure(error) }
+                )
             }
         } catch (e: Exception) {
             Result.failure(e)

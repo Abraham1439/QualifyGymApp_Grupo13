@@ -6,7 +6,8 @@ data class UsuarioDto(
     val username: String,
     val email: String,
     val phone: String?,
-    val rol: RolDto?
+    val rol: RolDto?,
+    val photoUrl: String? = null // ID de la imagen del microservicio de Imágenes
 )
 
 data class RolDto(
@@ -20,7 +21,8 @@ data class UsuarioCreateDto(
     val password: String,
     val email: String,
     val phone: String,
-    val rolId: Long? = null // Opcional para el endpoint público de registro
+    val rolId: Long? = null, // Opcional para el endpoint público de registro
+    val photoUrl: String? = null // ID de la imagen del microservicio de Imágenes
 )
 
 // DTO para registro público (no requiere rolId, se asigna automáticamente)

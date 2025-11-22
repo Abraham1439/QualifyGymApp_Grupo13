@@ -26,6 +26,7 @@ import com.example.qualifygym_grupo13.data.domain.PublicacionDomain
 import com.example.qualifygym_grupo13.data.domain.TemaDomain
 import com.example.qualifygym_grupo13.data.domain.UserDomain
 import com.example.qualifygym_grupo13.data.repository.UsuarioRepository
+import com.example.qualifygym_grupo13.data.repository.ComentarioRepository
 import com.example.qualifygym_grupo13.data.repository.toUserDomain
 import kotlinx.coroutines.launch
 
@@ -121,21 +122,31 @@ fun AdminDashboardContent(
     val temas by publicacionViewModel?.allTemas?.collectAsState() ?: remember { mutableStateOf(emptyList<TemaDomain>()) }
     
     val usuarioRepository = remember { UsuarioRepository() }
+    val comentarioRepository = remember { ComentarioRepository() }
     var totalUsuarios by remember { mutableStateOf(0) }
+    var totalComentarios by remember { mutableStateOf(0) }
     var isLoading by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
     
     LaunchedEffect(Unit) {
         publicacionViewModel?.loadAllPublicacionesIncluyendoOcultas()
-        publicacionViewModel?.let { vm ->
+        scope.launch {
             // Cargar usuarios
-            val result = usuarioRepository.fetchUsuarios()
-            result.onSuccess { usuarios ->
+            val usuariosResult = usuarioRepository.fetchUsuarios()
+            usuariosResult.onSuccess { usuarios ->
                 totalUsuarios = usuarios.size
-                isLoading = false
-            }.onFailure {
-                isLoading = false
             }
-        } ?: run { isLoading = false }
+            
+            // Cargar comentarios
+            val comentariosResult = comentarioRepository.fetchComentarios()
+            comentariosResult.onSuccess { comentarios ->
+                totalComentarios = comentarios.size
+            }.onFailure {
+                totalComentarios = 0
+            }
+            
+            isLoading = false
+        }
     }
     
     LazyColumn(
@@ -188,7 +199,7 @@ fun AdminDashboardContent(
                 )
                 StatCard(
                     title = "Comentarios",
-                    value = "0", // TODO: Obtener de comentarios
+                    value = if (isLoading) "..." else totalComentarios.toString(),
                     icon = Icons.Default.Comment,
                     color = Color(0xFF424242),
                     modifier = Modifier.weight(1f)
@@ -539,22 +550,32 @@ fun AdminStatisticsContent(
 ) {
     val publicaciones by publicacionViewModel?.allPublicaciones?.collectAsState() ?: remember { mutableStateOf(emptyList<PublicacionDomain>()) }
     val usuarioRepository = remember { UsuarioRepository() }
+    val comentarioRepository = remember { ComentarioRepository() }
     var usuarios by remember { mutableStateOf<List<UserDomain>>(emptyList()) }
     var usuariosDto by remember { mutableStateOf<List<com.example.qualifygym_grupo13.data.remote.dto.UsuarioDto>>(emptyList()) }
+    var totalComentarios by remember { mutableStateOf(0) }
     var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
     
     LaunchedEffect(Unit) {
         publicacionViewModel?.loadAllPublicacionesIncluyendoOcultas()
         scope.launch {
-            val result = usuarioRepository.fetchUsuarios()
-            result.onSuccess { dtos ->
+            // Cargar usuarios
+            val usuariosResult = usuarioRepository.fetchUsuarios()
+            usuariosResult.onSuccess { dtos ->
                 usuariosDto = dtos
                 usuarios = dtos.map { it.toUserDomain() }
-                isLoading = false
-            }.onFailure {
-                isLoading = false
             }
+            
+            // Cargar comentarios
+            val comentariosResult = comentarioRepository.fetchComentarios()
+            comentariosResult.onSuccess { comentarios ->
+                totalComentarios = comentarios.size
+            }.onFailure {
+                totalComentarios = 0
+            }
+            
+            isLoading = false
         }
     }
     
@@ -675,7 +696,7 @@ fun AdminStatisticsContent(
                             modifier = Modifier.weight(1f)
                         )
                         DetailedStatCard(
-                            value = "0", // TODO: Obtener de comentarios
+                            value = totalComentarios.toString(),
                             label = "Total Comentarios",
                             color = Color(0xFF424242),
                             icon = Icons.Default.Comment,

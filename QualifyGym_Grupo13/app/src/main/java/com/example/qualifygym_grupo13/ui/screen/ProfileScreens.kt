@@ -372,7 +372,10 @@ fun EditProfileScreen(
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { photoUri = it }
+        uri?.let { 
+            photoUri = it
+            Toast.makeText(context, "Foto de perfil actualizada", Toast.LENGTH_SHORT).show()
+        }
     }
     
     // Launcher para tomar foto con cámara
@@ -381,7 +384,10 @@ fun EditProfileScreen(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success) {
-            cameraUri.value?.let { photoUri = it }
+            cameraUri.value?.let { 
+                photoUri = it
+                Toast.makeText(context, "Foto de perfil actualizada", Toast.LENGTH_SHORT).show()
+            }
         }
     }
     
