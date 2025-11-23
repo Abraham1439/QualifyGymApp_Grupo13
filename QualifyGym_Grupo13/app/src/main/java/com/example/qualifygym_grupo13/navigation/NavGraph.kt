@@ -58,6 +58,9 @@ fun AppNavGraph(
 ) { // Recibe el controlador
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed) // Estado del drawer
     val scope = rememberCoroutineScope() // Necesario para abrir/cerrar drawer
+    
+    // Estado compartido para indicar que se viene de EditProfile
+    var comesFromEditProfile by remember { mutableStateOf(false) }
 
     //Obtener la ruta actual
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -69,7 +72,10 @@ fun AppNavGraph(
         Route.Login.path,
         Route.Register.path,
         Route.Forgot.path,
-        Route.ChangePassword.path
+        Route.ChangePassword.path,
+        Route.Profile.path,
+        Route.EditProfile.path,
+        Route.Search.path
     )
 
     // Helpers de navegación (reutilizamos en topbar/drawer/botones)
@@ -370,6 +376,16 @@ fun AppNavGraph(
                     val currentUser by authViewModel.currentUser.collectAsState()
                     val userName = currentUser?.name ?: "Usuario Demo"
                     val userEmail = currentUser?.email ?: "usuario@demo.com"
+                    
+                    // Usar el estado compartido para determinar la pestaña inicial
+                    val initialTab = if (comesFromEditProfile) 1 else 0 // 1 = Configuración
+                    
+                    // Resetear el flag después de usarlo
+                    LaunchedEffect(Unit) {
+                        if (comesFromEditProfile) {
+                            comesFromEditProfile = false
+                        }
+                    }
 
                     ProfileScreen(
                         name = userName,
@@ -381,6 +397,8 @@ fun AppNavGraph(
                             // Reutilizamos la navegación que ya tenías para ver el detalle de un post
                             openPost(postId)
                         },
+                        onBack = { navController.popBackStack() },
+                        initialTabIndex = initialTab,
                         onLogout = {
                             //Limpiar los datos del login
                             authViewModel.clearLoginData()
@@ -412,9 +430,19 @@ fun AppNavGraph(
                         authViewModel = authViewModel,
                         onSaved = { name, phone, email, gender, photoUri ->
                             // La lógica de guardar ahora se maneja dentro de EditProfileScreen
-                            navController.popBackStack()
+                            // Marcar que se viene de EditProfile y navegar a Profile
+                            comesFromEditProfile = true
+                            navController.navigate(Route.Profile.path) {
+                                popUpTo(Route.Profile.path) { inclusive = true }
+                            }
                         },
-                        onBack = { navController.popBackStack() }
+                        onBack = { 
+                            // Marcar que se viene de EditProfile y navegar a Profile
+                            comesFromEditProfile = true
+                            navController.navigate(Route.Profile.path) {
+                                popUpTo(Route.Profile.path) { inclusive = true }
+                            }
+                        }
                     )
                 }
                 composable(Route.AdminDashboard.path) {
@@ -662,8 +690,20 @@ fun AppNavGraph(
                 composable(Route.ChangePassword.path) {
                     ChangePasswordScreen(
                         authViewModel = authViewModel,
-                        onPasswordChanged = { navController.popBackStack() },
-                        onBack = { navController.popBackStack() }
+                        onPasswordChanged = { 
+                            // Marcar que se viene de una pantalla de configuración y navegar a Profile
+                            comesFromEditProfile = true
+                            navController.navigate(Route.Profile.path) {
+                                popUpTo(Route.Profile.path) { inclusive = true }
+                            }
+                        },
+                        onBack = { 
+                            // Marcar que se viene de una pantalla de configuración y navegar a Profile
+                            comesFromEditProfile = true
+                            navController.navigate(Route.Profile.path) {
+                                popUpTo(Route.Profile.path) { inclusive = true }
+                            }
+                        }
                     )
                 }
             }

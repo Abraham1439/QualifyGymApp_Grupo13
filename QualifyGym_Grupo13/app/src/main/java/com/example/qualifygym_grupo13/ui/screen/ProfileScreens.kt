@@ -51,6 +51,7 @@ import java.io.File
 import java.io.FileOutputStream
 
 // Pega este código donde estaba tu antiguo ProfileScreen
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     // Datos del usuario (vendrán de un ViewModel)
@@ -62,12 +63,14 @@ fun ProfileScreen(
     onHelpAndSupport: () -> Unit,
     onLogout: () -> Unit,
     onPublicationClick: (String) -> Unit, // Para ver el detalle de una publicación
+    onBack: () -> Unit = {}, // Acción para volver atrás
+    initialTabIndex: Int = 0, // Pestaña inicial (0 = Mis publicaciones, 1 = Configuración)
     // ViewModels
     authViewModel: AuthViewModel,
     publicacionViewModel: com.example.qualifygym_grupo13.ui.viewmodel.PublicacionViewModel
 ) {
     // Estado para saber qué pestaña está seleccionada (0 = Reseñas, 1 = Configuración)
-    var selectedTabIndex by remember { mutableStateOf(0) }
+    var selectedTabIndex by remember { mutableStateOf(initialTabIndex) }
     val tabs = listOf("Mis publicaciones", "Configuración")
     
     // Obtener el usuario actual y sus publicaciones
@@ -81,40 +84,65 @@ fun ProfileScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // 1. Cabecera con nombre y email (la crearemos en el siguiente paso)
-        ProfileHeader(name = name, email = email)
-
-        // 2. Pestañas de selección
-        TabRow(selectedTabIndex = selectedTabIndex) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTabIndex == index,
-                    onClick = { selectedTabIndex = index },
-                    text = { Text(text = title) },
-                    icon = {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Perfil") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = if (index == 0) Icons.Default.Star else Icons.Default.Settings,
-                            contentDescription = title
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
                         )
                     }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // 1. Cabecera con nombre y email (la crearemos en el siguiente paso)
+            ProfileHeader(name = name, email = email)
+
+            // 2. Pestañas de selección
+            TabRow(selectedTabIndex = selectedTabIndex) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index },
+                        text = { Text(text = title) },
+                        icon = {
+                            Icon(
+                                imageVector = if (index == 0) Icons.Default.Star else Icons.Default.Settings,
+                                contentDescription = title
+                            )
+                        }
+                    )
+                }
+            }
+
+            // 3. Contenido dinámico según la pestaña (lo crearemos en el siguiente paso)
+            when (selectedTabIndex) {
+                0 -> MyReviewsContent(
+                    userPublicaciones = userPublicaciones,
+                    isAdmin = currentUser?.isAdmin == true,
+                    onPublicationClick = onPublicationClick
+                )
+                1 -> SettingsContent(
+                    onEditProfile = onEditProfile,
+                    onChangePassword = onChangePassword,
+                    onHelpAndSupport = onHelpAndSupport,
+                    onLogout = onLogout
                 )
             }
-        }
-
-        // 3. Contenido dinámico según la pestaña (lo crearemos en el siguiente paso)
-        when (selectedTabIndex) {
-            0 -> MyReviewsContent(
-                userPublicaciones = userPublicaciones,
-                isAdmin = currentUser?.isAdmin == true,
-                onPublicationClick = onPublicationClick
-            )
-            1 -> SettingsContent(
-                onEditProfile = onEditProfile,
-                onChangePassword = onChangePassword,
-                onHelpAndSupport = onHelpAndSupport,
-                onLogout = onLogout
-            )
         }
     }
 }
@@ -224,6 +252,8 @@ private fun SettingsContent(
     onLogout: () -> Unit
 ) {
     val context = LocalContext.current
+    var showHelpDialog by remember { mutableStateOf(false) }
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -244,8 +274,68 @@ private fun SettingsContent(
         SettingsItem(
             title = "Ayuda y Soporte",
             icon = Icons.AutoMirrored.Filled.HelpOutline,
-            onClick = onHelpAndSupport
+            onClick = { showHelpDialog = true }
         )
+        
+        // Diálogo de Ayuda y Soporte
+        if (showHelpDialog) {
+            AlertDialog(
+                onDismissRequest = { showHelpDialog = false },
+                title = {
+                    Text(
+                        text = "Ayuda y Soporte",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Para ayuda y soporte comuníquese con el siguiente correo o número:",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Email,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "Donrafa@QualifyGym.com",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Phone,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "+56 9 8653 8297",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showHelpDialog = false }) {
+                        Text("Cerrar")
+                    }
+                }
+            )
+        }
 
         Spacer(modifier = Modifier.weight(1f)) // Empuja el botón de logout hacia abajo
 
