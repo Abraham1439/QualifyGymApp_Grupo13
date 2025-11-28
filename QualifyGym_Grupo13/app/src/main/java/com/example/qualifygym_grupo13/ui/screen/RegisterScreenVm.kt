@@ -130,7 +130,7 @@ private fun RegisterScreen(
             OutlinedTextField(
                 value = email,                               // Valor actual
                 onValueChange = onEmailChange,               // Notifica VM (valida)
-                label = { Text("Email") },                   // Etiqueta
+                label = { Text("Correo ") },                   // Etiqueta
                 singleLine = true,                           // Una línea
                 isError = emailError != null,                // Marca error
                 keyboardOptions = KeyboardOptions(
@@ -245,7 +245,7 @@ private fun RegisterScreen(
 
             // ---------- BOTÓN IR A LOGIN ----------
             OutlinedButton(onClick = onGoLogin, modifier = Modifier.fillMaxWidth()) {
-                Text("Ir a Login")
+                Text("Iniciar sesión")
             }
         }
     }

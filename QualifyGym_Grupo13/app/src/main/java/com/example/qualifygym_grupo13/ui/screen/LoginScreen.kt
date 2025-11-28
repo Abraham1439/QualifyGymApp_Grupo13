@@ -141,7 +141,7 @@ private fun LoginScreen(
             OutlinedTextField(
                 value = email,                               // Valor actual
                 onValueChange = onEmailChange,               // Notifica VM (valida email)
-                label = { Text("Email") },                   // Etiqueta
+                label = { Text("Correo") },                   // Etiqueta
                 singleLine = true,                           // Una línea
                 isError = emailError != null,                // Marca error si corresponde
                 keyboardOptions = KeyboardOptions(
