@@ -581,12 +581,23 @@ private fun CommentCard(
                                 text = { Text("Eliminar comentario") },
                                 onClick = {
                                     scope.launch {
-                                        // TODO: Implementar eliminación de comentarios si existe
-                                        Toast.makeText(
-                                            context,
-                                            "Función de eliminación no implementada",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                        val result = publicacionViewModel?.deleteComentario(
+                                            comentarioDomain.idComentario,
+                                            publicacionId
+                                        )
+                                        result?.onSuccess {
+                                            Toast.makeText(
+                                                context,
+                                                "Comentario eliminado",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }?.onFailure {
+                                            Toast.makeText(
+                                                context,
+                                                "Error al eliminar comentario: ${it.message}",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
                                     }
                                     showMenu = false
                                 },
