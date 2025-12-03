@@ -648,36 +648,6 @@ fun EditProfileScreen(
                     // Validar usando la función de validación local primero
                     val localError = validatePhoneDigitsOnly(digitsOnly)
                     phoneError = localError
-                    
-                    // Si la validación local pasa y el teléfono tiene 9 dígitos, verificar si ya existe
-                    // Pero solo si es diferente al teléfono actual del usuario
-                    if (localError == null && digitsOnly.length == 9 && digitsOnly != currentPhone) {
-                        scope.launch {
-                            delay(500) // Debounce para evitar demasiadas llamadas
-                            
-                            // Verificar que el teléfono no haya cambiado mientras esperábamos
-                            if (phone == digitsOnly) {
-                                val usuarioRepository = UsuarioRepository()
-                                val phoneExistsResult = usuarioRepository.findUsuarioByPhone(digitsOnly)
-                                val usuarioConTelefono = phoneExistsResult.getOrNull()
-                                
-                                // Verificar si el teléfono existe y pertenece a otro usuario (no al actual)
-                                if (usuarioConTelefono != null && usuarioConTelefono.id != currentUser?.id) {
-                                    phoneError = "El número telefónico ya está registrado"
-                                } else {
-                                    phoneError = null // Limpiar error si no existe o es del mismo usuario
-                                }
-                            }
-                        }
-                    } else if (digitsOnly == currentPhone) {
-                        // Si es el mismo teléfono actual, no hay error
-                        phoneError = null
-                    } else if (localError == null && digitsOnly.length < 9) {
-                        // Si aún no tiene 9 dígitos, limpiar error de duplicado (pero mantener error de formato si existe)
-                        if (phoneError == "El número telefónico ya está registrado") {
-                            phoneError = null
-                        }
-                    }
                 },
                 label = { Text("Teléfono") },
                 leadingIcon = {
@@ -777,19 +747,6 @@ fun EditProfileScreen(
                         // Actualizar perfil a través del ViewModel
                         scope.launch {
                             isLoading = true
-                            
-                            // Verificar si el teléfono ha cambiado y si ya está en uso (solo si es diferente al actual)
-                            if (phone != currentPhone && phone.length == 9) {
-                                val usuarioRepository = UsuarioRepository()
-                                val phoneExistsResult = usuarioRepository.findUsuarioByPhone(phone)
-                                val phoneExists = phoneExistsResult.getOrNull() != null
-                                
-                                if (phoneExists) {
-                                    phoneError = "El número telefónico ya está registrado"
-                                    isLoading = false
-                                    return@launch
-                                }
-                            }
                             
                             // 1. Subir foto de perfil al microservicio si hay una nueva
                             var savedPhotoId: String? = currentUser?.photoUrl // Mantener la actual (ID de imagen)

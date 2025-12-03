@@ -229,27 +229,19 @@ class UsuarioRepository(
             if (existeEmail) {
                 Result.failure(IllegalStateException("El correo ya está registrado"))
             } else {
-                // Verificar si el teléfono ya existe
-                val existePhoneResult = findUsuarioByPhone(phone)
-                val existePhone = existePhoneResult.getOrNull() != null
+                // Crear el usuario usando el endpoint público (no requiere rolId, se asigna automáticamente)
+                val usuarioRegister = UsuarioRegisterDto(
+                    username = name,
+                    password = password,
+                    email = email,
+                    phone = phone
+                )
                 
-                if (existePhone) {
-                    Result.failure(IllegalStateException("El número telefónico ya está registrado"))
-                } else {
-                    // Crear el usuario usando el endpoint público (no requiere rolId, se asigna automáticamente)
-                    val usuarioRegister = UsuarioRegisterDto(
-                        username = name,
-                        password = password,
-                        email = email,
-                        phone = phone
-                    )
-                    
-                    val result = create(usuarioRegister)
-                    result.fold(
-                        onSuccess = { usuario -> Result.success(usuario.id) },
-                        onFailure = { error -> Result.failure(error) }
-                    )
-                }
+                val result = create(usuarioRegister)
+                result.fold(
+                    onSuccess = { usuario -> Result.success(usuario.id) },
+                    onFailure = { error -> Result.failure(error) }
+                )
             }
         } catch (e: Exception) {
             Result.failure(e)

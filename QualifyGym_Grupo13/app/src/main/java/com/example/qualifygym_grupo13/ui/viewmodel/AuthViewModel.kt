@@ -241,28 +241,6 @@ class AuthViewModel(
             it.copy(phone = digitsOnly, phoneError = localError)
         }
         
-        // Si la validación local pasa y el teléfono tiene 9 dígitos, verificar si ya existe
-        if (localError == null && digitsOnly.length == 9) {
-            viewModelScope.launch {
-                delay(500) // Debounce para evitar demasiadas llamadas
-                
-                // Verificar que el teléfono no haya cambiado mientras esperábamos
-                if (_register.value.phone == digitsOnly) {
-                    val phoneExistsResult = repository.findUsuarioByPhone(digitsOnly)
-                    val phoneExists = phoneExistsResult.getOrNull() != null
-                    
-                    _register.update {
-                        if (phoneExists) {
-                            it.copy(phoneError = "El número telefónico ya está registrado")
-                        } else {
-                            it.copy(phoneError = null) // Limpiar error si no existe
-                        }
-                    }
-                    recomputeRegisterCanSubmit()
-                }
-            }
-        }
-        
         recomputeRegisterCanSubmit()
     }
 
