@@ -159,7 +159,7 @@ fun defaultDrawerItems(
     
     // Agregar ítem de admin solo si se proporciona el callback
     onAdminDashboard?.let {
-        items.add(DrawerItem("Ir al panel de admin", Icons.Filled.AdminPanelSettings, it)) // Ítem Panel de Admin
+        items.add(DrawerItem("Ir al panel de Administrador", Icons.Filled.AdminPanelSettings, it)) // Ítem Panel de Admin
     }
     
     // Agregar ítem de moderador solo si se proporciona el callback

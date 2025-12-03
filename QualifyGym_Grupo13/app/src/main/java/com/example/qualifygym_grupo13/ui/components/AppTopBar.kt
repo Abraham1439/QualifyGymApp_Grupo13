@@ -108,7 +108,7 @@ fun AppTopBar(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Admin",
+                            text = "Administrador",
                             style = MaterialTheme.typography.labelMedium,
                             color = Color(0xFFFFD700),
                             fontWeight = FontWeight.Bold

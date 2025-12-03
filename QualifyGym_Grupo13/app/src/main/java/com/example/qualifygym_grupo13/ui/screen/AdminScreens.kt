@@ -943,7 +943,7 @@ fun UserProfileDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 ProfileInfoRow("Nombre", usuario.username)
-                ProfileInfoRow("Email", usuario.email)
+                ProfileInfoRow("Correo", usuario.email)
                 ProfileInfoRow("Teléfono", usuario.phone ?: "No proporcionado")
                 ProfileInfoRow("Rol", usuario.rol?.nombre ?: "Usuario")
                 ProfileInfoRow("ID", usuario.id.toString())
