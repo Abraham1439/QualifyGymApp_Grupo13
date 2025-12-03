@@ -31,9 +31,16 @@ class PublicacionRepository(
 
     // Obtiene publicaciones por usuario
     suspend fun fetchPublicacionesPorUsuario(usuarioId: Long, incluirOcultas: Boolean = false): Result<List<PublicacionDto>> = try {
-        Result.success(api.getPublicacionesPorUsuario(usuarioId, incluirOcultas))
+        val publicaciones = api.getPublicacionesPorUsuario(usuarioId, incluirOcultas)
+        // Si la API devuelve null (usuario sin publicaciones), retornar lista vacía
+        Result.success(publicaciones ?: emptyList())
     } catch (e: Exception) {
-        Result.failure(e)
+        // Si el error es porque el body es null (usuario sin publicaciones), retornar lista vacía
+        if (e.message?.contains("was null but response body type was declared as non-null") == true) {
+            Result.success(emptyList())
+        } else {
+            Result.failure(e)
+        }
     }
 
     // Busca publicaciones

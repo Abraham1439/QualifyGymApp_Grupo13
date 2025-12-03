@@ -155,8 +155,19 @@ class PublicacionViewModel(
             val result = publicacionRepository.fetchPublicacionesPorUsuario(userId)
             result.onSuccess { dtos ->
                 _userPublicaciones.value = dtos.map { it.toPublicacionDomain() }
+                // Si la lista está vacía, no es un error, solo limpiar mensajes previos
+                if (dtos.isEmpty()) {
+                    _errorMessage.value = null
+                }
             }.onFailure {
-                _errorMessage.value = "Error al cargar publicaciones: ${it.message}"
+                // Solo establecer error si es un error real (no lista vacía)
+                if (it.message?.contains("was null but response body type was declared as non-null") != true) {
+                    _errorMessage.value = "Error al cargar publicaciones: ${it.message}"
+                } else {
+                    // Si es el error de null, simplemente establecer lista vacía
+                    _userPublicaciones.value = emptyList()
+                    _errorMessage.value = null
+                }
             }
             _isLoading.value = false
         }

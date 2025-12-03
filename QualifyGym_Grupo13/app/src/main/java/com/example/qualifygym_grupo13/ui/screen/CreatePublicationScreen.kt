@@ -81,6 +81,11 @@ fun CreatePublicationScreen(
     var photoUriString by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingCaptureUri by remember { mutableStateOf<Uri?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    
+    // Limpiar mensajes de error al entrar a esta pantalla
+    LaunchedEffect(Unit) {
+        publicacionViewModel?.clearMessages()
+    }
 
     // Launcher para la aplicación de cámara usando ActivityResultContracts
     // Este launcher maneja la comunicación con la aplicación de cámara del sistema
