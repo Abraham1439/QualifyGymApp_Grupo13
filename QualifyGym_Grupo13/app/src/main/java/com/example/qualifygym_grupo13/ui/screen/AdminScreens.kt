@@ -1066,7 +1066,7 @@ fun ChangeRoleDialog(
                                         // Esto puede requerir ajustes en el microservicio
                                         val updateDto = com.example.qualifygym_grupo13.data.remote.dto.UsuarioCreateDto(
                                             username = currentUser.username,
-                                            password = "temp", // El microservicio requiere password
+                                            password = "", // El microservicio requiere password, se la pasamos vacia para que no cambie la contrasenna
                                             email = currentUser.email,
                                             phone = currentUser.phone ?: "",
                                             rolId = roleIdMap[selectedRole]
