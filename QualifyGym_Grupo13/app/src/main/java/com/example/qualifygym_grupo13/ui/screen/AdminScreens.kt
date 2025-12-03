@@ -314,7 +314,7 @@ fun ManageUsersContent(
             }
         }
     }
-    
+
     // Diálogo para ver perfil
     selectedUserForProfile?.let { usuario ->
         UserProfileDialog(
